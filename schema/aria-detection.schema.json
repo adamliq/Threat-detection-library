@@ -1,27 +1,28 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/adamliq/Threat-detection-library/schema/detection.schema.json",
-  "title": "Threat Detection Library - Detection Entry",
-  "description": "Schema for a single detection entry in data/detections.json.",
+  "$id": "https://github.com/adamliq/Threat-detection-library/schema/aria-detection.schema.json",
+  "title": "Threat Detection Library - VMware Aria Operations for Logs Detection Entry",
+  "description": "Schema for a single detection entry in data/aria-detections.json. A sibling of detection.schema.json, adapted for VMware Aria Operations for Logs search syntax (not Splunk SPL) and for detections that span the whole vSphere/vCenter/NSX stack rather than only ESXi.",
   "type": "object",
   "required": [
-    "id", "title", "description", "type", "status", "severity", "platform",
-    "mitre_attack", "data_sources", "detection_logic", "spl",
+    "id", "vmw_id", "title", "description", "type", "status", "severity", "platform",
+    "tool", "mitre_attack", "data_sources", "detection_logic", "aria_query",
     "how_to_implement", "known_false_positives", "references",
     "author", "created", "modified", "version"
   ],
   "properties": {
-    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Stable, kebab-case, URL-safe slug. Never reuse or rename once published." },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Stable, kebab-case, URL-safe slug (prefixed with the lowercased vmw_id). Never reuse or rename once published." },
+    "vmw_id": { "type": "string", "pattern": "^VMW-\\d+$", "description": "Original catalogue ID (VMW-001 .. VMW-150), preserved for cross-referencing the catalogue's groups/priority-set sections." },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "analytic_story": { "type": "array", "items": { "type": "string" }, "description": "Named campaign/theme grouping this detection belongs to." },
+    "analytic_story": { "type": "array", "items": { "type": "string" } },
     "type": { "type": "string", "enum": ["TTP", "Anomaly", "Hunting", "Correlation"] },
     "status": { "type": "string", "enum": ["production", "experimental", "deprecated"] },
     "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "informational"] },
     "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
-    "platform": { "type": "string" },
+    "platform": { "type": "string", "description": "VMware component this detection targets, e.g. 'vCenter / SSO', 'ESXi', 'Storage', 'Cluster'." },
     "product_version": { "type": "string" },
-    "method": { "type": "string", "description": "Interface/technique surface used, e.g. API, ESXCLI, VIM-CMD." },
+    "tool": { "type": "string", "description": "The SIEM/log platform this query is written for, e.g. 'VMware Aria Operations for Logs'." },
     "mitre_attack": {
       "type": "object",
       "required": ["tactics", "techniques"],
@@ -30,16 +31,6 @@
         "techniques": { "type": "array", "items": { "type": "object", "required": ["id", "name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "url": { "type": "string" } } } }
       }
     },
-    "mitre_analytics": {
-      "type": "array",
-      "description": "Provenance links to the official MITRE ATT&CK Detection Analytic(s) (x-mitre-analytic objects, see data/mitre-attack-<platform>.json) this entry is grounded in, if any.",
-      "items": {
-        "type": "object",
-        "required": ["id", "url"],
-        "properties": { "id": { "type": "string", "description": "MITRE analytic ID, e.g. AN2044" }, "name": { "type": "string" }, "url": { "type": "string" } }
-      }
-    },
-    "kill_chain_phases": { "type": "array", "items": { "type": "string" } },
     "data_sources": {
       "type": "array",
       "items": {
@@ -48,9 +39,8 @@
         "properties": { "name": { "type": "string" }, "path": { "type": "string" }, "description": { "type": "string" } }
       }
     },
-    "detection_logic": { "type": "string" },
-    "spl": { "type": "string" },
-    "cli_reference": { "type": "string" },
+    "detection_logic": { "type": "string", "description": "Tuning/threshold guidance - the source catalogue's 'Detection logic / tuning' note." },
+    "aria_query": { "type": "string", "description": "VMware Aria Operations for Logs search expression (not Splunk SPL)." },
     "how_to_implement": { "type": "string" },
     "known_false_positives": { "type": "string" },
     "investigation_steps": { "type": "array", "items": { "type": "string" } },
@@ -59,7 +49,7 @@
       "type": "array",
       "items": { "type": "object", "required": ["title", "url"], "properties": { "title": { "type": "string" }, "url": { "type": "string" } } }
     },
-    "related_detections": { "type": "array", "items": { "type": "string" }, "description": "IDs of other entries in this library." },
+    "related_detections": { "type": "array", "items": { "type": "string" }, "description": "IDs of other entries in data/aria-detections.json." },
     "tags": { "type": "array", "items": { "type": "string" } },
     "author": { "type": "string" },
     "created": { "type": "string", "format": "date" },

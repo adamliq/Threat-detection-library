@@ -145,9 +145,10 @@
     "product_version": "ESXi 6.5 - 8.0",
     "method": "ESXCLI",
     "mitre_attack": {
-      "tactics": [{ "id": "TA0005", "name": "Defense Evasion" }],
-      "techniques": [{ "id": "T1562.006", "name": "Impair Defenses: Indicator Blocking", "url": "https://attack.mitre.org/techniques/T1562/006/" }]
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1685", "name": "Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1685/" }]
     },
+    "mitre_analytics": [{ "id": "AN2044", "name": "Detection of Defense Impairment through Disabled or Modified Tools across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0497#AN2044" }],
     "kill_chain_phases": ["Cover Tracks"],
     "data_sources": [
       { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal esxcli command line, invoking user, and working directory for every ESXi Shell / SSH session." },
@@ -170,11 +171,11 @@
       { "title": "Broadcom KB: Configuring syslog on ESXi", "url": "https://knowledge.broadcom.com/external/article/318939/configuring-syslog-on-esxi.html" }
     ],
     "related_detections": ["esxi-firewall-disabled-via-esxcli", "esxi-coredump-generation-disabled-via-esxcli"],
-    "tags": ["esxi", "vmware", "ransomware", "defense-evasion", "syslog", "esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "defense-impairment", "syslog", "esxcli"],
     "author": "Threat Detection Library",
     "created": "2026-08-12",
     "modified": "2026-08-12",
-    "version": "1.0"
+    "version": "1.1"
   },
   {
     "id": "esxi-welcome-message-changed-via-esxcli",
@@ -319,9 +320,10 @@
     "product_version": "ESXi 6.5 - 8.0",
     "method": "ESXCLI",
     "mitre_attack": {
-      "tactics": [{ "id": "TA0005", "name": "Defense Evasion" }],
-      "techniques": [{ "id": "T1562.001", "name": "Impair Defenses: Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1562/001/" }]
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1685", "name": "Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1685/" }]
     },
+    "mitre_analytics": [{ "id": "AN2044", "name": "Detection of Defense Impairment through Disabled or Modified Tools across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0497#AN2044" }],
     "kill_chain_phases": ["Cover Tracks"],
     "data_sources": [
       { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal esxcli coredump command line and user." },
@@ -342,11 +344,11 @@
       { "title": "Broadcom KB: Configuring a diagnostic coredump partition on an ESXi host", "url": "https://knowledge.broadcom.com/external/article/319492/configuring-a-diagnostic-coredump-partit.html" }
     ],
     "related_detections": ["esxi-firewall-disabled-via-esxcli", "esxi-syslog-configuration-changed-via-esxcli"],
-    "tags": ["esxi", "vmware", "ransomware", "anti-forensics", "coredump", "esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "anti-forensics", "defense-impairment", "coredump", "esxcli"],
     "author": "Threat Detection Library",
     "created": "2026-08-12",
     "modified": "2026-08-12",
-    "version": "1.0"
+    "version": "1.1"
   },
   {
     "id": "esxi-firewall-disabled-via-esxcli",
@@ -361,9 +363,10 @@
     "product_version": "ESXi 6.5 - 8.0",
     "method": "ESXCLI",
     "mitre_attack": {
-      "tactics": [{ "id": "TA0005", "name": "Defense Evasion" }],
-      "techniques": [{ "id": "T1562.004", "name": "Impair Defenses: Disable or Modify System Firewall", "url": "https://attack.mitre.org/techniques/T1562/004/" }]
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1686", "name": "Disable or Modify System Firewall", "url": "https://attack.mitre.org/techniques/T1686/" }]
     },
+    "mitre_analytics": [{ "id": "AN0409", "name": "Detection of Disabled or Modified System Firewalls across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0145#AN0409" }],
     "kill_chain_phases": ["Cover Tracks"],
     "data_sources": [
       { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli network firewall set --enabled false' command line and user." },
@@ -385,11 +388,11 @@
       { "title": "Broadcom TechDocs: Manage the ESXi Firewall", "url": "https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere-sdks-tools/7-0/esxcli-concepts-and-examples-7-0/managing-vsphere-networking/manage-the-esxi-firewall.html" }
     ],
     "related_detections": ["esxi-firewall-default-action-set-to-pass", "ssh-enable-on-esxi-host-via-vim-cmd"],
-    "tags": ["esxi", "vmware", "ransomware", "firewall", "esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "defense-impairment", "firewall", "esxcli"],
     "author": "Threat Detection Library",
     "created": "2026-08-12",
     "modified": "2026-08-12",
-    "version": "1.0"
+    "version": "1.1"
   },
   {
     "id": "ssh-enable-on-esxi-host-via-vim-cmd",
@@ -654,9 +657,10 @@
     "product_version": "ESXi 6.5 - 8.0",
     "method": "ESXCLI",
     "mitre_attack": {
-      "tactics": [{ "id": "TA0005", "name": "Defense Evasion" }],
-      "techniques": [{ "id": "T1562.004", "name": "Impair Defenses: Disable or Modify System Firewall", "url": "https://attack.mitre.org/techniques/T1562/004/" }]
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1686", "name": "Disable or Modify System Firewall", "url": "https://attack.mitre.org/techniques/T1686/" }]
     },
+    "mitre_analytics": [{ "id": "AN0409", "name": "Detection of Disabled or Modified System Firewalls across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0145#AN0409" }],
     "kill_chain_phases": ["Cover Tracks"],
     "data_sources": [
       { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli network firewall set --default-action true' command line and user." },
@@ -678,11 +682,11 @@
       { "title": "buildVirtual: Working with the ESXi Firewall", "url": "https://buildvirtual.net/working-with-the-esxi-firewall/" }
     ],
     "related_detections": ["esxi-firewall-disabled-via-esxcli"],
-    "tags": ["esxi", "vmware", "ransomware", "firewall", "esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "defense-impairment", "firewall", "esxcli"],
     "author": "Threat Detection Library",
     "created": "2026-08-12",
     "modified": "2026-08-12",
-    "version": "1.0"
+    "version": "1.1"
   },
   {
     "id": "esxi-vm-powered-off-via-vim-cmd",
@@ -740,9 +744,10 @@
     "product_version": "ESXi 6.5 - 8.0",
     "method": "ESXCLI",
     "mitre_attack": {
-      "tactics": [{ "id": "TA0005", "name": "Defense Evasion" }],
-      "techniques": [{ "id": "T1562.001", "name": "Impair Defenses: Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1562/001/" }]
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1685", "name": "Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1685/" }]
     },
+    "mitre_analytics": [{ "id": "AN2044", "name": "Detection of Defense Impairment through Disabled or Modified Tools across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0497#AN2044" }],
     "kill_chain_phases": ["Weaponization", "Cover Tracks"],
     "data_sources": [
       { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli software acceptance set --level=CommunitySupported' command line and user." },
@@ -764,8 +769,589 @@
       { "title": "Broadcom TechDocs: Manage the Acceptance Levels of Hosts and VIBs", "url": "https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/7-0/vsphere-security/securing-esxi-hosts/customizing-hosts-with-the-security-profile/using-vibs-to-perform-secure-updates/check-the-acceptance-levels-of-hosts-and-vibs.html" },
       { "title": "Mandiant: Novel Malware Persists on VMware ESXi Hypervisors (VirtualPita, VirtualPie, VirtualGate)", "url": "https://cloud.google.com/blog/topics/threat-intelligence/esxi-hypervisors-malware-persistence" }
     ],
-    "related_detections": ["esxi-firewall-disabled-via-esxcli", "esxi-coredump-generation-disabled-via-esxcli"],
-    "tags": ["esxi", "vmware", "defense-evasion", "vib", "persistence", "esxcli"],
+    "related_detections": ["esxi-firewall-disabled-via-esxcli", "esxi-coredump-generation-disabled-via-esxcli", "esxi-malicious-vib-installed-via-esxcli"],
+    "tags": ["esxi", "vmware", "defense-impairment", "vib", "persistence", "esxcli"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.1"
+  },
+  {
+    "id": "esxi-lockdown-mode-disabled-via-esxcli-or-vim-cmd",
+    "title": "ESXi Lockdown Mode Disabled via ESXCLI or VIM-CMD",
+    "description": "Detects lockdown mode being turned off on an ESXi host (`vim-cmd ... vimsvc/auth/lockdown_mode_exit`, or the equivalent `HostAccessManager.ChangeLockdownMode` API call). Lockdown mode restricts host management to vCenter/the `vpxuser` account only; disabling it reopens direct local API, vCLI, and (if SSH is also on) shell access to the host, and is exactly the kind of change MITRE's own ESXi analytic for this technique groups alongside syslog and firewall tampering.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "critical",
+    "confidence": "high",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "ESXCLI / VIM-CMD",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1685", "name": "Disable or Modify Tools", "url": "https://attack.mitre.org/techniques/T1685/" }]
+    },
+    "mitre_analytics": [{ "id": "AN2044", "name": "Detection of Defense Impairment through Disabled or Modified Tools across OS Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0497#AN2044" }],
+    "kill_chain_phases": ["Cover Tracks"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal vim-cmd lockdown command line and user, if issued from an existing local/SSH shell session." },
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Logs the HostAccessManager.ChangeLockdownMode task, whether invoked via vim-cmd, the DCUI, or the vSphere/PowerCLI API." }
+    ],
+    "detection_logic": "Alert on any HostAccessManager.ChangeLockdownMode task that sets lockdown mode to disabled/normal (from strict or normal-locked), or any vim-cmd '...vimsvc/auth/lockdown_mode_exit' invocation. Because most hardened environments run hosts in lockdown mode continuously, treat every disable event outside a documented maintenance window as high-confidence.",
+    "spl": "index=esxi sourcetype=vmware:esxi:hostd (\"HostAccessManager.ChangeLockdownMode\" OR \"lockdown_mode_exit\")\n| rex field=_raw \"user=(?<user>[^\\]\\s]+)\"\n| table _time, esxi_host, user, _raw",
+    "cli_reference": "vim-cmd -U dcui vimsvc/auth/lockdown_mode_exit   (check state: vim-cmd -U dcui vimsvc/auth/lockdown_is_enabled ; API: HostAccessManager.ChangeLockdownMode)",
+    "how_to_implement": "Forward hostd.log and shell.log; add a scheduled drift check against the host's HostAccessManager.lockdownMode property so state changes are caught even if the task event is missed.",
+    "known_false_positives": "Planned break-glass access during a P1 outage, or VMware GSS-guided troubleshooting, legitimately exits lockdown mode temporarily; require a matching change ticket and confirm it was re-enabled afterward.",
+    "investigation_steps": [
+      "Identify who/what disabled lockdown mode - DCUI console session vs. an existing API/SSH session - and from what source.",
+      "Check whether SSH was enabled or the firewall was disabled in the same window.",
+      "Confirm whether the host was re-locked down after the maintenance activity completed.",
+      "If unauthorized, re-enable lockdown mode and rotate local ESXi account credentials."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "Broadcom KB: Enabling or disabling Lockdown mode on an ESXi host", "url": "https://knowledge.broadcom.com/external/article/336894/enabling-or-disabling-lockdown-mode-on-a.html" },
+      { "title": "MITRE ATT&CK Detection Strategy DET0497: Disabled or Modified Tools", "url": "https://attack.mitre.org/detectionstrategies/DET0497" }
+    ],
+    "related_detections": ["ssh-enable-on-esxi-host-via-vim-cmd", "esxi-firewall-disabled-via-esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "defense-impairment", "lockdown-mode", "esxcli", "vim-cmd"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-local-account-removed-or-password-reset-via-esxcli",
+    "title": "ESXi Local Account Removed or Password Reset via ESXCLI",
+    "description": "Detects use of `esxcli system account remove` or `esxcli system account set --password` to delete a local ESXi account or change its password. Attackers use this late in an intrusion to lock legitimate administrators out of the host - either to buy time before the encryption/extortion event is discovered, or as a standalone denial-of-access attack against the hypervisor management plane.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "critical",
+    "confidence": "high",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "ESXCLI",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0040", "name": "Impact" }],
+      "techniques": [{ "id": "T1531", "name": "Account Access Removal", "url": "https://attack.mitre.org/techniques/T1531/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0337", "name": "Account Access Removal via Multi-Platform Audit Correlation", "url": "https://attack.mitre.org/detectionstrategies/DET0120#AN0337" }],
+    "kill_chain_phases": ["Actions on Objectives"],
+    "data_sources": [
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Logs the RemoveUser task (or the account-update task for a password change) generated whether the change came from esxcli, vCLI, or the vSphere API." },
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli system account remove' / 'esxcli system account set' command line and user, if run interactively." },
+      { "name": "vpxa.log / vCenter Events", "path": "vCenter Server", "description": "Corroborates the account change with a vCenter-attributed identity and source IP when the host is centrally managed." }
+    ],
+    "detection_logic": "Alert on any esxcli/API account-removal or password-set task, especially when the target account is a known admin account, or when it follows an unrecognized login or a burst of enumeration commands in the same session.",
+    "spl": "index=esxi sourcetype=vmware:esxi:hostd (\"RemoveUser\" OR (\"esxcli system account set\" \"--password\"))\n| rex field=_raw \"user=(?<actor>[^\\]\\s]+)\"\n| rex field=_raw \"(?:-i|--id)[= ](?<target_account>\\S+)\"\n| table _time, esxi_host, actor, target_account, _raw",
+    "cli_reference": "esxcli system account remove -i <userid>   |   esxcli system account set -i <userid> -p <newpassword> -c <newpassword>",
+    "how_to_implement": "Forward hostd.log (and shell.log/auth.log where available); maintain a small allowlist of admin/service account names so removal or password changes to those specific accounts can page immediately.",
+    "known_false_positives": "Routine offboarding of a departed administrator, or scheduled credential rotation for a service account, will trigger this; require change-ticket correlation, particularly for removals of break-glass or root-equivalent accounts.",
+    "investigation_steps": [
+      "Identify the actor and session that made the change, and whether they hold administrative rights to do so under normal process.",
+      "Check whether the target account is a known human admin, break-glass, or service account.",
+      "Attempt to confirm whether affected admins have lost access, and whether root or another account is still reachable to remediate.",
+      "Review for concurrent SSH-enable, firewall, or lockdown-mode changes in the same session - account lockout is often the last step before or after the destructive payload."
+    ],
+    "risk_objects": [{ "field": "actor", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1531: Account Access Removal", "url": "https://attack.mitre.org/techniques/T1531/" }
+    ],
+    "related_detections": ["esxi-new-local-account-created-via-esxcli", "esxi-system-users-enumerated-via-esxcli"],
+    "tags": ["esxi", "vmware", "ransomware", "impact", "account-access-removal", "esxcli"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "ssh-authorized-keys-modified-on-esxi-host",
+    "title": "SSH Authorized Keys Modified on ESXi Host",
+    "description": "Detects direct modification of an ESXi user's `/etc/ssh/keys-<user>/authorized_keys` file (e.g. `/etc/ssh/keys-root/authorized_keys`) to add a public key for passwordless SSH access. Because ESXi's bootbank is largely rebuilt from a read-only image on reboot, attackers pair this with a hook in `/etc/rc.local.d/local.sh` (or another persistent partition path) so the planted key survives a host reboot - a durable backdoor that bypasses password auth and any subsequent credential rotation entirely.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "critical",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0003", "name": "Persistence" }],
+      "techniques": [{ "id": "T1098.004", "name": "Account Manipulation: SSH Authorized Keys", "url": "https://attack.mitre.org/techniques/T1098/004/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0353", "name": "Detection Strategy for SSH Key Injection in Authorized Keys", "url": "https://attack.mitre.org/detectionstrategies/DET0126#AN0353" }],
+    "kill_chain_phases": ["Actions on Objectives"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records edits to authorized_keys made via vi/cat/echo redirection from an interactive shell, and any edit to /etc/rc.local.d/local.sh used to re-plant the key on boot." },
+      { "name": "File integrity monitoring", "path": "/etc/ssh/keys-<user>/authorized_keys", "description": "A FIM/osquery-style watch on this path (where supported) is the most direct signal, independent of whether the edit was logged as a shell command." }
+    ],
+    "detection_logic": "Alert on any write to /etc/ssh/keys-*/authorized_keys observed in shell.log or FIM, and separately on any edit to /etc/rc.local.d/local.sh, since the combination of the two is the durable-persistence pattern; a key add alone may just be legitimate key-based auth setup.",
+    "spl": "index=esxi sourcetype=esxi_shell_log (\"authorized_keys\" OR \"/etc/rc.local.d/local.sh\")\n| table _time, esxi_host, user, _raw\n| eval technique=if(match(_raw, \"authorized_keys\"), \"key_write\", \"boot_persistence_hook\")",
+    "cli_reference": "vi /etc/ssh/keys-root/authorized_keys   |   echo \"<pubkey>\" >> /etc/ssh/keys-root/authorized_keys   (persisted via /etc/rc.local.d/local.sh)",
+    "how_to_implement": "Forward shell.log; where the environment supports it, add a file-integrity check on /etc/ssh/keys-*/authorized_keys and /etc/rc.local.d/local.sh and alert on any unmanaged change, since these paths should only change through configuration management.",
+    "known_false_positives": "Legitimate setup of key-based SSH auth for automation (backup appliances, orchestration tools) by an admin; verify the added key fingerprint against your known-good inventory before dismissing.",
+    "investigation_steps": [
+      "Extract the added public key and check its fingerprint against inventory of approved automation/admin keys.",
+      "Identify the session/user that made the change and how it authenticated.",
+      "Check whether /etc/rc.local.d/local.sh (or another persistent-partition path) was also modified to re-plant the key on reboot.",
+      "If unauthorized, remove the key, audit rc.local.d for other hooks, and treat the host as having had durable persistence established."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1098.004: SSH Authorized Keys", "url": "https://attack.mitre.org/techniques/T1098/004/" },
+      { "title": "Broadcom KB: Allowing SSH access to ESXi/ESX hosts with public/private key authentication", "url": "https://knowledge.broadcom.com/external/article/313767/allowing-ssh-access-to-vmware-vsphere-es.html" }
+    ],
+    "related_detections": ["ssh-enable-on-esxi-host-via-vim-cmd"],
+    "tags": ["esxi", "vmware", "persistence", "ssh", "authorized-keys"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-malicious-vib-installed-via-esxcli",
+    "title": "ESXi Malicious VIB Installed via ESXCLI",
+    "description": "Detects `esxcli software vib install` invoked with `--force` or `--no-sig-check` - the step that actually installs an unsigned/backdoored vSphere Installation Bundle once the acceptance level has been lowered. This is the technique behind real ESXi implants such as Mandiant's VirtualPita/VirtualPie/VirtualGate: the VIB places a persistent startup script or binary that survives reboots and runs outside any guest-level EDR's visibility, since it executes on the hypervisor itself.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "critical",
+    "confidence": "high",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "ESXCLI",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0003", "name": "Persistence" }],
+      "techniques": [{ "id": "T1505.006", "name": "Server Software Component: vSphere Installation Bundles", "url": "https://attack.mitre.org/techniques/T1505/006/" }]
+    },
+    "mitre_analytics": [{ "id": "AN1475", "name": "Detect Abuse of vSphere Installation Bundles (VIBs) for Persistent Access", "url": "https://attack.mitre.org/detectionstrategies/DET0535#AN1475" }],
+    "kill_chain_phases": ["Weaponization", "Actions on Objectives"],
+    "data_sources": [
+      { "name": "esxupdate.log", "path": "/var/log/esxupdate.log", "description": "Records each VIB installed, including its declared acceptance level and whether --force or --no-sig-check was used to bypass signature checks." },
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli software vib install' command line, its source (local file vs. remote URL), and user." },
+      { "name": "File integrity monitoring", "path": "/etc/rc.local.d/, /etc/init.d/, /store, /locker", "description": "Malicious VIBs typically drop a startup hook in one of these persistent-partition paths to re-establish the backdoor on every boot." }
+    ],
+    "detection_logic": "Alert on any 'esxcli software vib install' with --force or --no-sig-check, or any esxupdate.log entry showing a VIB installed at CommunitySupported acceptance with a non-standard/unknown vendor name. Escalate further if a new file appears under /etc/rc.local.d/ or /etc/init.d/ shortly afterward.",
+    "spl": "index=esxi sourcetype=esxi_shell_log \"esxcli software vib install\" (\"--force\" OR \"--no-sig-check\")\n| table _time, esxi_host, user, _raw\n| append\n    [ search index=esxi sourcetype=esxi_esxupdate \"CommunitySupported\"\n      | table _time, esxi_host, _raw ]\n| sort _time",
+    "cli_reference": "esxcli software vib install -v /tmp/<malicious>.vib --no-sig-check   |   esxcli software vib install -d <url> --force",
+    "how_to_implement": "Forward esxupdate.log and shell.log; if available, add file-integrity monitoring on /etc/rc.local.d, /etc/init.d, /store, and /locker to catch the persistence hook independent of the install command being logged.",
+    "known_false_positives": "Legitimate installation of vendor hardware/driver VIBs that are only published at CommunitySupported level (uncommon in production, more common in lab/homelab use); verify the VIB vendor/name against a known-good inventory.",
+    "investigation_steps": [
+      "Run 'esxcli software vib list' and identify any VIB with an unfamiliar vendor, name, or install date outside a patch window.",
+      "Inspect the VIB's payload/startup scripts for anything resembling a reverse shell, listener, or unexpected network client.",
+      "Check /etc/rc.local.d/, /etc/init.d/, /store, and /locker for new or modified files.",
+      "Treat the host as compromised: capture forensic images and rebuild the host from a known-good image rather than attempting in-place VIB removal - a hypervisor-level implant can survive partial remediation."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "Mandiant: Novel Malware Persists on VMware ESXi Hypervisors (VirtualPita, VirtualPie, VirtualGate)", "url": "https://cloud.google.com/blog/topics/threat-intelligence/esxi-hypervisors-malware-persistence" },
+      { "title": "MITRE ATT&CK T1505.006: vSphere Installation Bundles", "url": "https://attack.mitre.org/techniques/T1505/006/" }
+    ],
+    "related_detections": ["esxi-vib-acceptance-level-set-to-community-supported-via-esxcli"],
+    "tags": ["esxi", "vmware", "persistence", "vib", "implant", "esxcli"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-new-local-account-created-via-esxcli",
+    "title": "New Local Account Created on ESXi Host via ESXCLI",
+    "description": "Detects use of `esxcli system account add` to create a new local ESXi account, optionally followed by `esxcli system permission set` to grant it a role (typically Admin). Attackers create a second account as a fallback credential so they retain host access even if the account they originally compromised is discovered, disabled, or rotated.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "high",
+    "confidence": "high",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "ESXCLI",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0003", "name": "Persistence" }],
+      "techniques": [{ "id": "T1136.001", "name": "Create Account: Local Account", "url": "https://attack.mitre.org/techniques/T1136/001/" }]
+    },
+    "mitre_analytics": [{ "id": "AN1238", "name": "T1136.001 Detection Strategy - Local Account Creation Across Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0447#AN1238" }],
+    "kill_chain_phases": ["Actions on Objectives"],
+    "data_sources": [
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Logs the AddUser task with the new account name and the invoking session, whether created via esxcli, vCLI, or the vSphere API." },
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'esxcli system account add' and 'esxcli system permission set' command lines and user." }
+    ],
+    "detection_logic": "Alert on any AddUser task / 'esxcli system account add' invocation, and treat it as higher-confidence when the new account is immediately granted the Admin role via 'esxcli system permission set' in the same session.",
+    "spl": "index=esxi sourcetype=vmware:esxi:hostd \"AddUser\"\n| rex field=_raw \"user=(?<actor>[^\\]\\s]+)\"\n| rex field=_raw \"newUser=(?<new_account>\\S+)\"\n| table _time, esxi_host, actor, new_account, _raw",
+    "cli_reference": "esxcli system account add -i <userid> -p <password> -c <password> -d \"<description>\"   |   esxcli system permission set -i <userid> -r Admin",
+    "how_to_implement": "Forward hostd.log and shell.log; maintain an inventory of expected/approved local accounts per host so any account creation not matching that inventory pages immediately.",
+    "known_false_positives": "Legitimate provisioning of a new service account (backup, monitoring, orchestration) during onboarding of new tooling; verify against a change ticket and your account inventory.",
+    "investigation_steps": [
+      "Identify the actor/session that created the account and whether they have authority to provision accounts.",
+      "Check whether the new account was granted Admin (or another privileged role) immediately afterward.",
+      "Check whether this occurred in the same session as account enumeration, SSH enablement, or other reconnaissance.",
+      "If unauthorized, remove the account immediately and audit all recent changes made under it."
+    ],
+    "risk_objects": [{ "field": "actor", "type": "user" }, { "field": "new_account", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1136.001: Create Account - Local Account", "url": "https://attack.mitre.org/techniques/T1136/001/" }
+    ],
+    "related_detections": ["esxi-local-account-removed-or-password-reset-via-esxcli", "esxi-system-users-enumerated-via-esxcli", "esxi-root-default-account-login-anomaly"],
+    "tags": ["esxi", "vmware", "persistence", "account-creation", "esxcli"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-root-default-account-login-anomaly",
+    "title": "ESXi Root/Default Account Login Anomaly",
+    "description": "Detects logins to the built-in `root` account (or the vCenter-managed `vpxuser` service account) from a source IP, time-of-day, or session type that doesn't match its normal usage pattern. Because `root` is the one ESXi account that can never be deleted and is present on every host by default, it is the account attackers reach for first once they have any credential - flagging anomalous use of it closes a gap that account-creation and account-discovery detections don't cover.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "Anomaly",
+    "status": "production",
+    "severity": "high",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell / API",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0003", "name": "Persistence" }],
+      "techniques": [{ "id": "T1078.001", "name": "Valid Accounts: Default Accounts", "url": "https://attack.mitre.org/techniques/T1078/001/" }]
+    },
+    "mitre_analytics": [{ "id": "AN1286", "name": "Detection of Default Account Abuse Across Platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0465#AN1286" }],
+    "kill_chain_phases": ["Initial Access", "Actions on Objectives"],
+    "data_sources": [
+      { "name": "auth.log", "path": "/var/log/auth.log", "description": "Records every SSH/local authentication attempt and outcome for root and other local accounts, including source IP." },
+      { "name": "vpxa.log", "path": "/var/log/vpxa.log", "description": "Records vpxuser (vCenter-managed) authentication activity against the host." }
+    ],
+    "detection_logic": "Baseline root/vpxuser login source IPs, times, and session types (SSH vs. DCUI vs. API) per host over a rolling window, then alert on logins from a new source IP, outside the typical time-of-day range, or via a session type (e.g. interactive SSH) not seen for that account before.",
+    "spl": "index=esxi sourcetype=esxi_auth_log user=root (\"Accepted password\" OR \"Accepted publickey\")\n| eval hour=strftime(_time,\"%H\")\n| lookup esxi_root_login_baseline.csv esxi_host, src_ip OUTPUT is_known_source\n| where isnull(is_known_source) OR (hour<6 OR hour>20)\n| table _time, esxi_host, user, src_ip, hour",
+    "cli_reference": "n/a - authentication-anomaly detection, not a single command; investigate via 'esxcli system account list' and 'esxcli system permission list' to review current privileged accounts",
+    "how_to_implement": "Forward auth.log and vpxa.log; build (or lookup-table) a per-host baseline of expected root/vpxuser source IPs and login windows, refreshed periodically, since this detection's value depends entirely on that baseline being reasonably current.",
+    "known_false_positives": "Jump-host/bastion IP changes, DR failover to a secondary vCenter, or a new backup appliance authenticating as root will all trigger this until the baseline is updated; treat first occurrences as investigate-not-block.",
+    "investigation_steps": [
+      "Confirm the source IP against known jump hosts, VPN ranges, and approved automation.",
+      "Check whether the login was followed by destructive, discovery, or defense-impairment commands.",
+      "Cross-reference with the SSH-enable detection to see whether SSH was just turned on for this session.",
+      "If confirmed unauthorized, rotate the root password immediately across all affected hosts (root is often shared/scripted across a cluster)."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "src_ip", "type": "other" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1078.001: Valid Accounts - Default Accounts", "url": "https://attack.mitre.org/techniques/T1078/001/" }
+    ],
+    "related_detections": ["ssh-enable-on-esxi-host-via-vim-cmd", "esxi-new-local-account-created-via-esxcli"],
+    "tags": ["esxi", "vmware", "persistence", "default-account", "root", "anomaly"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-shell-command-history-cleared-or-disabled",
+    "title": "ESXi Shell Command History Cleared or Disabled",
+    "description": "Detects truncation/clearing of `/var/log/shell.log` (which doubles as ESXi's shell command-history log) or an interactive shell session that unsets `HISTFILE`/`HISTFILESIZE` to stop commands from being recorded at all. Attackers use this to erase the very artifact - shell.log - that every other CLI-based detection in this library depends on, making it one of the highest-value anti-forensics signals to catch early.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "high",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0005", "name": "Stealth" }, { "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [
+        { "id": "T1070.003", "name": "Indicator Removal: Clear Command History", "url": "https://attack.mitre.org/techniques/T1070/003/" },
+        { "id": "T1690", "name": "Prevent Command History Logging", "url": "https://attack.mitre.org/techniques/T1690/" }
+      ]
+    },
+    "mitre_analytics": [
+      { "id": "AN0470", "name": "Behavioral Detection of Command History Clearing", "url": "https://attack.mitre.org/detectionstrategies/DET0165#AN0470" },
+      { "id": "AN1558", "name": "Detection Strategy for Defense Impairment via Prevent Command History Logging across OS platforms", "url": "https://attack.mitre.org/detectionstrategies/DET0563#AN1558" }
+    ],
+    "kill_chain_phases": ["Cover Tracks"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "A sudden size drop, gap, or truncation of this file - or the presence of an 'unset HISTFILE'/'export HISTFILESIZE=0' command line right before a gap - is the signal itself." },
+      { "name": "auth.log", "path": "/var/log/auth.log", "description": "Correlate an active SSH session (login/still-open) with a shell.log gap that has no corresponding logout, which indicates commands ran but weren't recorded." }
+    ],
+    "detection_logic": "Alert on (a) any file-size decrease or multi-minute gap in shell.log for a host that was actively producing shell.log entries, or (b) any captured command line containing 'unset HISTFILE', 'export HISTFILESIZE=0', or '> /var/log/shell.log' / 'cat /dev/null > /var/log/shell.log'.",
+    "spl": "index=esxi sourcetype=esxi_shell_log (\"unset HISTFILE\" OR \"HISTFILESIZE=0\" OR \"> /var/log/shell.log\" OR \"/dev/null > /var/log/shell.log\")\n| table _time, esxi_host, user, _raw\n| append\n    [ | tstats count as event_count from index=esxi sourcetype=esxi_shell_log by esxi_host, _time span=10m\n      | streamstats current=f last(event_count) as prev_count by esxi_host\n      | eval gap=if(event_count=0 AND prev_count>0, 1, 0)\n      | where gap=1 ]",
+    "cli_reference": "unset HISTFILE   |   export HISTFILESIZE=0   |   cat /dev/null > /var/log/shell.log   |   > /var/log/shell.log",
+    "how_to_implement": "Forward shell.log to your SIEM in near-real-time (short forwarding interval) specifically so gaps become visible quickly; a log-volume/gap detection is the primary control here since the clearing command itself may not be captured if history logging was disabled before it ran.",
+    "known_false_positives": "ESXi log rotation naturally truncates shell.log on a schedule; exclude known rotation windows/sizes and alert only on out-of-cycle drops or explicit HISTFILE-tampering command lines.",
+    "investigation_steps": [
+      "Confirm the gap/truncation doesn't align with the host's normal log-rotation schedule.",
+      "Check auth.log for an SSH session that was open across the gap with no matching logout.",
+      "Review hostd.log for any VIM API tasks (snapshot, power, config changes) that occurred during the shell.log gap, since those still get logged independently.",
+      "Treat this as a strong indicator that other, unlogged commands ran during the gap and investigate accordingly."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1070.003: Indicator Removal - Clear Command History", "url": "https://attack.mitre.org/techniques/T1070/003/" },
+      { "title": "MITRE ATT&CK T1690: Prevent Command History Logging", "url": "https://attack.mitre.org/techniques/T1690/" }
+    ],
+    "related_detections": ["esxi-log-files-deleted-via-shell"],
+    "tags": ["esxi", "vmware", "ransomware", "anti-forensics", "stealth", "shell-log"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-log-files-deleted-via-shell",
+    "title": "ESXi Log Files or Artifacts Deleted via Shell",
+    "description": "Detects `rm` (or similar) commands run from the ESXi Shell against `/var/log/`, `/tmp/`, `/var/core/`, or `/scratch/` - the paths where ransomware droppers, staged tools, and core dumps land. Attackers delete these after use to remove both the malware binary itself and any log evidence of it having run, which is a distinct anti-forensics step from clearing shell.log's own command history.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "high",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0005", "name": "Stealth" }],
+      "techniques": [{ "id": "T1070.004", "name": "Indicator Removal: File Deletion", "url": "https://attack.mitre.org/techniques/T1070/004/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0395", "name": "Behavioral Detection of Malicious File Deletion", "url": "https://attack.mitre.org/detectionstrategies/DET0140#AN0395" }],
+    "kill_chain_phases": ["Cover Tracks"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal 'rm' (or 'rm -rf') command line, its target path, and the invoking user." }
+    ],
+    "detection_logic": "Alert on 'rm' invocations from shell.log where the target path is under /tmp/, /var/core/, /scratch/, or /var/log/ - especially recursive deletes ('rm -rf') or deletes of multiple files/wildcards in one command, which is atypical of routine admin cleanup.",
+    "spl": "index=esxi sourcetype=esxi_shell_log \"rm \" (\"/tmp/\" OR \"/var/core/\" OR \"/scratch/\" OR \"/var/log/\")\n| rex field=_raw \"rm\\s+(?<rm_flags>-\\S+)?\\s*(?<target_path>\\S+)\"\n| table _time, esxi_host, user, rm_flags, target_path, _raw",
+    "cli_reference": "rm -rf /tmp/<payload>   |   rm /var/core/*.zdump   |   rm /scratch/log/*.log",
+    "how_to_implement": "Forward shell.log; this pairs well with the command-history-clearing detection since attackers often issue both in the same cleanup pass at the end of an intrusion.",
+    "known_false_positives": "Routine disk-space cleanup of /tmp or /scratch by admins or scheduled housekeeping scripts; baseline known cleanup automation and its typical file patterns/schedule.",
+    "investigation_steps": [
+      "Identify exactly what was deleted, if recoverable from datastore snapshots or backup, and what it might have been (dropper, tool, core dump).",
+      "Check whether this followed a file transfer/download command (e.g. wget, scp, InitiateFileTransferFromGuest) placing something in the same path.",
+      "Review for concurrent shell-history clearing or log-gap indicators.",
+      "Treat as a strong signal that a manual investigation of the host for other persistence/tooling is warranted, since the direct evidence has been destroyed."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1070.004: Indicator Removal - File Deletion", "url": "https://attack.mitre.org/techniques/T1070/004/" }
+    ],
+    "related_detections": ["esxi-shell-command-history-cleared-or-disabled"],
+    "tags": ["esxi", "vmware", "ransomware", "anti-forensics", "stealth", "file-deletion"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-host-logs-enumerated-via-shell",
+    "title": "ESXi Host Logs Enumerated via Shell",
+    "description": "Detects use of `cat`, `tail`, `less`, or `grep` against `/var/log/vmkernel.log`, `hostd.log`, or `vpxa.log` from an interactive shell session. Attackers read the host's own logs early in an intrusion to understand what's being recorded (and by extension, what they need to tamper with or avoid) before proceeding to destructive or defense-impairment actions.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "low",
+    "confidence": "low",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0007", "name": "Discovery" }],
+      "techniques": [{ "id": "T1654", "name": "Log Enumeration", "url": "https://attack.mitre.org/techniques/T1654/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0709", "name": "Detection Strategy for Log Enumeration", "url": "https://attack.mitre.org/detectionstrategies/DET0255#AN0709" }],
+    "kill_chain_phases": ["Reconnaissance"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal cat/tail/less/grep command line and target log path." }
+    ],
+    "detection_logic": "Match shell.log entries invoking cat/tail/less/grep against /var/log/vmkernel.log, /var/log/hostd.log, or /var/log/vpxa.log. Low severity as a building block; escalate when it co-occurs with account, network, or VM enumeration in the same session, or precedes a log-clearing/history-clearing event.",
+    "spl": "index=esxi sourcetype=esxi_shell_log (\"cat \" OR \"tail \" OR \"less \" OR \"grep \") (\"/var/log/vmkernel.log\" OR \"/var/log/hostd.log\" OR \"/var/log/vpxa.log\")\n| stats count values(_raw) as commands by esxi_host, user, ssh_session_id",
+    "cli_reference": "cat /var/log/hostd.log   |   tail -f /var/log/vmkernel.log   |   grep -i error /var/log/vpxa.log",
+    "how_to_implement": "Forward shell.log; treat as a low-severity discovery building block feeding the same reconnaissance-sweep correlation search as the other enumeration detections in this library.",
+    "known_false_positives": "Extremely common for legitimate troubleshooting by admins and support engineers; expect a high baseline volume.",
+    "investigation_steps": [
+      "Check whether this co-occurred with account, network, storage, or VM enumeration in the same session (a full recon sweep is a stronger signal than any single command).",
+      "Check for a subsequent shell.log gap or history-clearing event in the same session.",
+      "Identify the SSH source IP and authentication method."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1654: Log Enumeration", "url": "https://attack.mitre.org/techniques/T1654/" }
+    ],
+    "related_detections": ["esxi-shell-command-history-cleared-or-disabled", "esxi-system-information-discovery-via-vim-cmd"],
+    "tags": ["esxi", "vmware", "discovery", "log-enumeration", "shell"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-vm-datastore-file-permissions-modified",
+    "title": "ESXi VM/Datastore File Permissions Modified via Shell",
+    "description": "Detects `chmod`/`chown` run from the ESXi Shell against VMFS datastore files or VM configuration files (`.vmx`), or corresponding permission-change operations logged by hostd/vCenter. Attackers loosen permissions on VM disks/config files to enable tampering by a lower-privileged foothold, or as a precursor to directly manipulating a `.vmx`/`.vmdk` outside the normal VIM API (which bypasses task/event logging entirely).",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "medium",
+    "confidence": "low",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Shell",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0112", "name": "Defense Impairment" }],
+      "techniques": [{ "id": "T1222", "name": "File and Directory Permissions Modification", "url": "https://attack.mitre.org/techniques/T1222/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0837", "name": "Multi-Platform File and Directory Permissions Modification Detection Strategy", "url": "https://attack.mitre.org/detectionstrategies/DET0299#AN0837" }],
+    "kill_chain_phases": ["Cover Tracks"],
+    "data_sources": [
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal chmod/chown command line, target path, and user." },
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Host daemon events for VM/file permission changes when driven through the VIM API rather than the raw shell." },
+      { "name": "vpxd.log / vCenter Events", "path": "vCenter Server", "description": "Permission-change operations on datastores or VMs when centrally managed." }
+    ],
+    "detection_logic": "Alert on chmod/chown commands from shell.log targeting paths under /vmfs/volumes/ or ending in .vmx/.vmdk, correlated with an SSH session and, ideally, a subsequent direct edit of the affected file.",
+    "spl": "index=esxi sourcetype=esxi_shell_log (\"chmod \" OR \"chown \") (\"/vmfs/volumes/\" OR \".vmx\" OR \".vmdk\")\n| table _time, esxi_host, user, _raw",
+    "cli_reference": "chmod 777 /vmfs/volumes/<datastore>/<vm>/<vm>.vmx   |   chown root /vmfs/volumes/<datastore>/<vm>/<vm>.vmdk",
+    "how_to_implement": "Forward shell.log and hostd.log; this is a lower-confidence, hunting-style building block best combined with other session activity rather than alerted on standalone.",
+    "known_false_positives": "Legitimate troubleshooting of a permissions-related VM boot/access issue by support staff or VMware GSS.",
+    "investigation_steps": [
+      "Identify the target VM/file and whether the permission change was followed by a direct file edit outside the VIM API.",
+      "Check for concurrent SSH-enable or lockdown-mode changes in the same session.",
+      "Verify the file's permissions were restored to their prior state, or correct them manually.",
+      "Review for other datastore-hosted content changes (e.g. defacement of a VM-hosted web app) in the same window."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1222: File and Directory Permissions Modification", "url": "https://attack.mitre.org/techniques/T1222/" }
+    ],
+    "related_detections": [],
+    "tags": ["esxi", "vmware", "defense-impairment", "permissions", "shell"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-host-shutdown-or-rebooted-via-esxcli-or-vim-cmd",
+    "title": "ESXi Host Shutdown or Rebooted via ESXCLI/VIM-CMD",
+    "description": "Detects `esxcli system shutdown reboot`/`poweroff` or `vim-cmd hostsvc/maintenance_mode_enter` followed by a host reboot, executed outside of a maintenance window or by an unusual user. A forced reboot is sometimes the final step attackers take to load a newly-installed malicious VIB (which activates on boot), or as a standalone denial-of-service/impact action against the hypervisor itself.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "high",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "ESXCLI / VIM-CMD",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0040", "name": "Impact" }],
+      "techniques": [{ "id": "T1529", "name": "System Shutdown/Reboot", "url": "https://attack.mitre.org/techniques/T1529/" }]
+    },
+    "mitre_analytics": [{ "id": "AN1541", "name": "Multi-Platform Shutdown or Reboot Detection via Execution and Host Status Events", "url": "https://attack.mitre.org/detectionstrategies/DET0559#AN1541" }],
+    "kill_chain_phases": ["Actions on Objectives"],
+    "data_sources": [
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Logs the host powering off/restarting, correlated with the session that triggered it." },
+      { "name": "shell.log", "path": "/var/log/shell.log", "description": "Records the literal esxcli shutdown/reboot command line, reason string, and user." }
+    ],
+    "detection_logic": "Alert on any esxcli system shutdown reboot/poweroff invocation, or hostd reboot/poweroff task, occurring outside a documented maintenance window or issued by an account not on the approved maintenance-operator list.",
+    "spl": "index=esxi sourcetype=esxi_shell_log \"esxcli system shutdown\" (\"reboot\" OR \"poweroff\")\n| rex field=_raw \"-r[= ]\\\"?(?<reason>[^\\\"]*)\\\"?\"\n| table _time, esxi_host, user, reason, _raw",
+    "cli_reference": "esxcli system shutdown reboot -r \"<reason>\" [-d <delay_seconds>]   |   esxcli system shutdown poweroff -r \"<reason>\"",
+    "how_to_implement": "Forward shell.log and hostd.log; maintain a maintenance-window calendar/lookup so reboots outside it page immediately, and require a non-empty, plausible --reason string as part of your change process.",
+    "known_false_positives": "Scheduled patch/maintenance reboots via vSphere Lifecycle Manager or an admin's manual maintenance window; correlate against your change calendar before treating as suspicious.",
+    "investigation_steps": [
+      "Check the --reason string supplied (or its absence) and compare against any open change ticket.",
+      "Check whether a VIB was installed shortly before the reboot.",
+      "Identify the actor/session and whether it correlates with other defense-impairment or destructive activity in the same window.",
+      "Confirm all VMs on the host resumed normally (or were intentionally left off) after the reboot completed."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }],
+    "references": [
+      { "title": "Broadcom TechDocs: Stopping and Rebooting Hosts with ESXCLI", "url": "https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere-sdks-tools/8-0/esxcli-concepts-and-examples-8-0/managing-hosts/stopping-and-rebooting-hosts-with-esxcli.html" }
+    ],
+    "related_detections": ["esxi-malicious-vib-installed-via-esxcli"],
+    "tags": ["esxi", "vmware", "impact", "shutdown", "reboot", "esxcli"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-guest-operations-api-command-execution",
+    "title": "ESXi Guest Operations API Abused for Command Execution",
+    "description": "Detects abuse of the VIM Guest Operations API (`StartProgramInGuest`, `ListProcessesInGuest`, `ListFileInGuest`, `InitiateFileTransferFromGuest`/`ToGuest`) to run commands or move files inside a guest VM through the ESXi host itself, using stolen guest credentials passed to the API. This is a distinct execution path from every other detection in this library: it never touches the guest's own network stack or security agent, since the command is relayed by VMware Tools inside the guest on the host's instruction - making it a way to run code in a VM that a guest-level EDR may never see as a normal process-creation event with a normal parent process.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "TTP",
+    "status": "production",
+    "severity": "high",
+    "confidence": "medium",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "API",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0002", "name": "Execution" }],
+      "techniques": [{ "id": "T1675", "name": "ESXi Administration Command", "url": "https://attack.mitre.org/techniques/T1675/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0646", "name": "Detection Strategy for ESXi Administration Command", "url": "https://attack.mitre.org/detectionstrategies/DET0232#AN0646" }],
+    "kill_chain_phases": ["Actions on Objectives"],
+    "data_sources": [
+      { "name": "hostd.log", "path": "/var/log/hostd.log", "description": "Logs each Guest Operations API invocation (StartProgramInGuest, ListProcessesInGuest, ListFileInGuest, InitiateFileTransferFromGuest/ToGuest) with the calling session and target VM." }
+    ],
+    "detection_logic": "Alert on an unusual frequency of Guest Operations API calls, calls from an account/session not associated with your management or backup tooling, or calls occurring outside business hours - per MITRE's own guidance for this technique. A single StartProgramInGuest call from a known orchestration account is expected; a burst against many VMs, or any call from an unrecognized session, is not.",
+    "spl": "index=esxi sourcetype=vmware:esxi:hostd (\"StartProgramInGuest\" OR \"ListProcessesInGuest\" OR \"ListFileInGuest\" OR \"InitiateFileTransferFromGuest\" OR \"InitiateFileTransferToGuest\")\n| rex field=_raw \"user=(?<user>[^\\]\\s]+)\"\n| bucket _time span=10m\n| stats count dc(vm) as distinct_vms_targeted values(vm) as vms by _time, user, esxi_host\n| where distinct_vms_targeted >= 3 OR NOT match(user, \"^(svc_|automation_)\")",
+    "cli_reference": "vSphere API: GuestProcessManager.StartProgramInGuest / ListProcessesInGuest ; GuestFileManager.ListFilesInGuest / InitiateFileTransferFromGuestToUrl (commonly scripted via PowerCLI Invoke-VMScript or pyVmomi)",
+    "how_to_implement": "Forward hostd.log; maintain an allowlist of accounts/service principals authorized to use Guest Operations (backup/orchestration tooling) so any other caller is treated as anomalous by default.",
+    "known_false_positives": "Legitimate backup/orchestration tooling (e.g. quiesced-snapshot pre/post scripts, patch orchestration) uses Guest Operations extensively; the allowlist above is essential to keep this usable.",
+    "investigation_steps": [
+      "Identify the calling account/session and whether it's a recognized automation identity.",
+      "Review ListFileInGuest/InitiateFileTransferFromGuest calls for files being staged or exfiltrated from the guest.",
+      "Review StartProgramInGuest calls for the exact command/program executed inside the guest.",
+      "If unauthorized, treat both the ESXi host credential used and the targeted guest VM(s) as potentially compromised, and rotate the guest credentials the API call used."
+    ],
+    "risk_objects": [{ "field": "user", "type": "user" }, { "field": "esxi_host", "type": "system" }, { "field": "vm", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1675: ESXi Administration Command", "url": "https://attack.mitre.org/techniques/T1675/" },
+      { "title": "Sygnia: Fire Ant - Hypervisor-Level Espionage Targeting VMware ESXi & vCenter", "url": "https://www.sygnia.co/blog/fire-ant-a-deep-dive-into-hypervisor-level-espionage/" }
+    ],
+    "related_detections": [],
+    "tags": ["esxi", "vmware", "execution", "guest-operations", "api"],
+    "author": "Threat Detection Library",
+    "created": "2026-08-12",
+    "modified": "2026-08-12",
+    "version": "1.0"
+  },
+  {
+    "id": "esxi-vm-escape-attempt-hypervisor-anomaly",
+    "title": "ESXi VM Escape Attempt (Hypervisor Anomaly)",
+    "description": "A hunting-type search for anomalies at the hypervisor/VMkernel level consistent with a VM escape attempt - unexpected hypercalls, VM exit/entry irregularities, or kernel module load activity not tied to a routine driver update. VM escape is one of the highest-impact techniques against a hypervisor: a successful escape gives an attacker code execution on the host itself, with visibility into and control over every VM it hosts. This is lower-confidence and requires vmkernel-level telemetry most environments don't collect by default; treat it as a hunting query to run periodically or after a suspected compromise, not a tuned real-time alert.",
+    "analytic_story": ["VMware ESXi Ransomware Precursor Activity"],
+    "type": "Hunting",
+    "status": "experimental",
+    "severity": "critical",
+    "confidence": "low",
+    "platform": "VMware ESXi",
+    "product_version": "ESXi 6.5 - 8.0",
+    "method": "Hypervisor",
+    "mitre_attack": {
+      "tactics": [{ "id": "TA0004", "name": "Privilege Escalation" }],
+      "techniques": [{ "id": "T1611", "name": "Escape to Host", "url": "https://attack.mitre.org/techniques/T1611/" }]
+    },
+    "mitre_analytics": [{ "id": "AN0615", "name": "Detection Strategy for Escape to Host", "url": "https://attack.mitre.org/detectionstrategies/DET0219#AN0615" }],
+    "kill_chain_phases": ["Privilege Escalation"],
+    "data_sources": [
+      { "name": "vmkernel.log", "path": "/var/log/vmkernel.log", "description": "The only host-side source for VM exit/entry anomalies, unexpected hypercalls, or unplanned kernel module loads; requires verbose/debug-level VMkernel logging to be meaningful, which most hosts don't run by default." }
+    ],
+    "detection_logic": "Hunt vmkernel.log for kernel module load events that don't correspond to a known driver/VIB install, or for repeated VM exit/entry error patterns concentrated on a single VM, especially one running untrusted or externally-sourced guest workloads. Because ESXi doesn't expose fine-grained hypercall telemetry by default, this is inherently a lower-fidelity, higher-effort hunt rather than a reliable real-time detection.",
+    "spl": "index=esxi sourcetype=esxi_vmkernel (\"module load\" OR \"Loading module\") NOT [ | inputlookup esxi_known_vib_installs.csv | fields module_name ]\n| table _time, esxi_host, module_name, _raw",
+    "cli_reference": "n/a - anomaly-hunting search over vmkernel.log; there is no single attacker-run command signature for this technique",
+    "how_to_implement": "Requires vmkernel.log forwarded at a verbose logging level, plus a maintained lookup of expected kernel modules/VIBs per host so unexpected loads stand out; most environments will need to explicitly raise VMkernel log verbosity to make this search meaningful.",
+    "known_false_positives": "Legitimate driver/VIB installation and updates load new kernel modules regularly; without a well-maintained known-good module lookup, this search will be noisy.",
+    "investigation_steps": [
+      "Cross-reference any flagged module load against esxupdate.log / 'esxcli software vib list' for a corresponding, expected VIB installation.",
+      "Identify which VM (if any) was running at the time of the anomaly and review its guest-level telemetry for exploitation attempts.",
+      "Escalate to VMware/Broadcom support with the specific vmkernel.log excerpt if an unexplained module load or VM exit/entry anomaly is confirmed - this may indicate a 0-day hypervisor exploit.",
+      "Treat a confirmed escape as a full-host compromise: isolate the host, do not trust any subsequent log data from it, and begin incident response at the hypervisor level."
+    ],
+    "risk_objects": [{ "field": "esxi_host", "type": "system" }, { "field": "vm", "type": "system" }],
+    "references": [
+      { "title": "MITRE ATT&CK T1611: Escape to Host", "url": "https://attack.mitre.org/techniques/T1611/" }
+    ],
+    "related_detections": ["esxi-malicious-vib-installed-via-esxcli"],
+    "tags": ["esxi", "vmware", "privilege-escalation", "vm-escape", "hunting"],
     "author": "Threat Detection Library",
     "created": "2026-08-12",
     "modified": "2026-08-12",
