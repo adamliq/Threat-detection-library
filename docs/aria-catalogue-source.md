@@ -2,8 +2,9 @@
 
 This catalogue is designed for **VMware Aria Operations for Logs / VMware Aria Operations for Logs search** and intentionally uses **Aria search expressions rather than Splunk SPL**.
 
-This is the canonical source document for [`data/aria-detections.json`](../data/aria-detections.json)
-and [`aria-catalogue.html`](../aria-catalogue.html). Each `### VMW-XXX` entry below
+This is the canonical source document for [`data/aria-detections.json`](../data/aria-detections.json),
+which feeds these detections into the combined [`index.html`](../index.html) library.
+Each `### VMW-XXX` entry below
 is parsed by [`tools/import_aria_catalogue.py`](../tools/import_aria_catalogue.py) into a
 schema-compliant record (see [`schema/aria-detection.schema.json`](../schema/aria-detection.schema.json));
 the description, data sources, false-positive notes, and investigation steps in the JSON are
