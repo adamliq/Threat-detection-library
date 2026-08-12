@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library of platform-specific threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references.">
+<title>VMware Aria Operations for Logs Threat Detection Catalogue</title>
+<meta name="description" content="150 VMware vSphere/vCenter/ESXi threat detections written as VMware Aria Operations for Logs search expressions, with MITRE ATT&amp;CK mapping, data sources, and tuning guidance.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -130,7 +130,7 @@
     width: 30px; height: 30px; border-radius: 8px;
     background: linear-gradient(145deg, var(--accent), #6d1a22);
     display: inline-flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
+    color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0;
   }
   .brand h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   .brand .sub { font-size: 12px; color: var(--text-faint); }
@@ -199,6 +199,7 @@
   .card:active { transform: scale(0.997); }
   .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .card-title { font-size: 14.5px; font-weight: 650; line-height: 1.35; }
+  .card-id { font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, monospace; font-weight: 600; }
   .badge {
     display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
     text-transform: uppercase; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; white-space: nowrap;
@@ -247,7 +248,6 @@
     background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 14px 16px;
     font-size: 12.6px; overflow-x: auto; white-space: pre; position: relative; line-height: 1.6;
   }
-  .code-block .cmd { color: var(--code-accent); }
   .copy-btn {
     position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.08); color: var(--code-text);
     border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer;
@@ -290,33 +290,6 @@
     .sidebar { display: none; }
     .layout { padding: 14px; }
   }
-
-  .coverage-summary {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    background: var(--bg-inset); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
-  }
-  .coverage-summary .big-num { font-size: 22px; font-weight: 700; }
-  .coverage-summary .big-num small { font-size: 13px; font-weight: 500; color: var(--text-faint); }
-  .coverage-bar { flex: 1 1 160px; height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; min-width: 120px; }
-  .coverage-bar-fill { height: 100%; background: var(--accent); }
-  .coverage-tactic-group { margin-top: 4px; }
-  .coverage-tactic-group summary {
-    cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--text-muted);
-    padding: 8px 0; list-style: none; display: flex; align-items: center; justify-content: space-between;
-  }
-  .coverage-tactic-group summary::-webkit-details-marker { display: none; }
-  .coverage-tactic-group summary .tcount { font-weight: 500; color: var(--text-faint); }
-  .coverage-tech-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 7px 8px; border-radius: 7px; font-size: 13px;
-  }
-  .coverage-tech-row:hover { background: var(--bg-inset); }
-  .coverage-tech-row .ct-name { color: var(--text); }
-  .coverage-tech-row .ct-id { color: var(--text-faint); font-family: ui-monospace, monospace; font-size: 11.5px; margin-right: 6px; }
-  .coverage-pill { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-  .coverage-pill.covered { background: var(--badge-low-bg); color: var(--badge-low-text); }
-  .coverage-pill.gap { background: var(--bg); border: 1px solid var(--border); color: var(--text-faint); }
-  .coverage-note { font-size: 12px; color: var(--text-faint); }
 </style>
 </head>
 <body>
@@ -324,24 +297,23 @@
 <header class="app-header">
   <div class="app-header-inner">
     <div class="brand">
-      <span class="brand-mark">TD</span>
+      <span class="brand-mark">VA</span>
       <div>
-        <h1>Threat Detection Library</h1>
+        <h1>VMware Aria Operations for Logs &mdash; Threat Detection Catalogue</h1>
         <div class="sub" id="stats-line">&nbsp;</div>
       </div>
     </div>
     <div class="search-wrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="search-input" placeholder="Search detections, techniques, log sources, commands&hellip;" autocomplete="off">
+      <input type="text" id="search-input" placeholder="Search detections, components, techniques, query terms&hellip;" autocomplete="off">
       <span class="kbd-hint">/</span>
     </div>
     <div class="header-actions">
-      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage for this platform">ATT&amp;CK Coverage</button>
       <button class="btn" id="export-btn" title="Export current results as JSON">Export</button>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
-      <a class="btn" href="aria-catalogue.html">Aria Ops for Logs Catalogue</a>
+      <a class="btn" href="index.html">ESXi / Splunk Library</a>
       <a class="btn primary" href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
@@ -365,22 +337,22 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and TA field extractions before deploying.
-  &middot; <a href="aria-catalogue.html">VMware Aria Operations for Logs catalogue</a>
+  VMware Aria Operations for Logs Threat Detection Catalogue &mdash; 150 detections (VMW-001&ndash;VMW-150) spanning vCenter, SSO, ESXi, storage, networking, and cluster services. Field names (user, vc_username, src, vm_name, host, principal, &hellip;) depend on your content pack and source product version &mdash; validate before enabling any alert.
+  &middot; <a href="index.html">ESXi / Splunk SPL library</a>
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
-<script type="application/json" id="detections-data">__DETECTIONS_JSON__</script>
+<script type="application/json" id="detections-data">__ARIA_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
 
   var DATA = JSON.parse(document.getElementById("detections-data").textContent);
 
-  var state = { query: "", tactic: null, severity: null, method: null, dataSource: null, activeId: null };
+  var state = { query: "", tactic: null, severity: null, component: null, type: null, activeId: null };
 
   /* ---------------------------- Theme ---------------------------- */
-  var THEME_KEY = "tdl-theme";
+  var THEME_KEY = "aria-tdl-theme";
   function applyTheme(mode) {
     if (mode === "light" || mode === "dark") {
       document.documentElement.setAttribute("data-theme", mode);
@@ -408,28 +380,19 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function facetCounts(getKeys) {
-    var counts = {};
-    filteredExcept(null).forEach(function () {});
-    DATA.forEach(function (d) {
-      var keys = getKeys(d) || [];
-      keys.forEach(function (k) { if (k) counts[k] = (counts[k] || 0) + 1; });
-    });
-    return counts;
-  }
   function allTactics() {
     var set = {};
     DATA.forEach(function (d) { (d.mitre_attack.tactics || []).forEach(function (t) { set[t.name] = true; }); });
     return Object.keys(set).sort();
   }
-  function allMethods() {
+  function allComponents() {
     var set = {};
-    DATA.forEach(function (d) { if (d.method) set[d.method] = true; });
+    DATA.forEach(function (d) { if (d.platform) set[d.platform] = true; });
     return Object.keys(set).sort();
   }
-  function allDataSources() {
+  function allTypes() {
     var set = {};
-    DATA.forEach(function (d) { (d.data_sources || []).forEach(function (ds) { set[ds.name] = true; }); });
+    DATA.forEach(function (d) { if (d.type) set[d.type] = true; });
     return Object.keys(set).sort();
   }
   var SEVERITY_ORDER = ["critical", "high", "medium", "low", "informational"];
@@ -438,7 +401,7 @@
     if (!q) return true;
     q = q.toLowerCase();
     var haystack = [
-      d.title, d.description, d.spl, d.cli_reference, d.method,
+      d.vmw_id, d.title, d.description, d.aria_query, d.platform,
       (d.tags || []).join(" "),
       (d.mitre_attack.techniques || []).map(function (t) { return t.id + " " + t.name; }).join(" "),
       (d.data_sources || []).map(function (s) { return s.name; }).join(" ")
@@ -448,21 +411,17 @@
   function matchesFilters(d) {
     if (state.tactic && (d.mitre_attack.tactics || []).every(function (t) { return t.name !== state.tactic; })) return false;
     if (state.severity && d.severity !== state.severity) return false;
-    if (state.method && d.method !== state.method) return false;
-    if (state.dataSource && (d.data_sources || []).every(function (s) { return s.name !== state.dataSource; })) return false;
+    if (state.component && d.platform !== state.component) return false;
+    if (state.type && d.type !== state.type) return false;
     return true;
   }
-  function filteredExcept() {
-    return DATA.filter(function (d) { return matchesQuery(d, state.query) && matchesFilters(d); });
-  }
   function currentResults() {
-    return filteredExcept();
+    return DATA.filter(function (d) { return matchesQuery(d, state.query) && matchesFilters(d); });
   }
 
   /* ---------------------------- Sidebar ---------------------------- */
   function renderSidebar() {
     var sidebar = document.getElementById("sidebar");
-    var results = currentResults();
 
     function section(title, options, activeKey, onClear) {
       var html = '<div class="filter-group"><h3>' + esc(title);
@@ -487,19 +446,19 @@
     DATA.forEach(function (d) { (d.mitre_attack.tactics || []).forEach(function (t) { tacticCounts[t.name] = (tacticCounts[t.name] || 0) + 1; }); });
     var tacticOpts = allTactics().map(function (t) { return { key: t, label: t, count: tacticCounts[t] || 0 }; });
 
-    var methodCounts = {};
-    DATA.forEach(function (d) { if (d.method) methodCounts[d.method] = (methodCounts[d.method] || 0) + 1; });
-    var methodOpts = allMethods().map(function (m) { return { key: m, label: m, count: methodCounts[m] || 0 }; });
+    var componentCounts = {};
+    DATA.forEach(function (d) { if (d.platform) componentCounts[d.platform] = (componentCounts[d.platform] || 0) + 1; });
+    var componentOpts = allComponents().map(function (c) { return { key: c, label: c, count: componentCounts[c] || 0 }; });
 
-    var dsCounts = {};
-    DATA.forEach(function (d) { (d.data_sources || []).forEach(function (s) { dsCounts[s.name] = (dsCounts[s.name] || 0) + 1; }); });
-    var dsOpts = allDataSources().map(function (s) { return { key: s, label: s, count: dsCounts[s] || 0 }; });
+    var typeCounts = {};
+    DATA.forEach(function (d) { if (d.type) typeCounts[d.type] = (typeCounts[d.type] || 0) + 1; });
+    var typeOpts = allTypes().map(function (t) { return { key: t, label: t, count: typeCounts[t] || 0 }; });
 
     sidebar.innerHTML =
+      section("VMware Component", componentOpts, state.component, "component") +
       section("MITRE ATT&CK Tactic", tacticOpts, state.tactic, "tactic") +
       section("Severity", severityOpts, state.severity, "severity") +
-      section("Method", methodOpts, state.method, "method") +
-      section("Data Source", dsOpts, state.dataSource, "dataSource");
+      section("Type", typeOpts, state.type, "type");
 
     sidebar.querySelectorAll(".filter-option").forEach(function (el) {
       el.addEventListener("click", function () {
@@ -519,27 +478,26 @@
 
   /* ---------------------------- Cards ---------------------------- */
   function cardHtml(d) {
-    var tactics = (d.mitre_attack.tactics || []).map(function (t) { return t.name; });
     var techniques = (d.mitre_attack.techniques || []).map(function (t) { return t.id; });
     return '<div class="card" data-id="' + esc(d.id) + '" tabindex="0">' +
-      '<div class="card-top"><div class="card-title">' + esc(d.title) + '</div>' +
+      '<div class="card-top"><div><div class="card-id">' + esc(d.vmw_id) + '</div><div class="card-title">' + esc(d.title) + '</div></div>' +
       '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span></div>' +
       '<div class="card-desc">' + esc(d.description) + '</div>' +
       '<div class="tag-row">' +
       techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
-      tactics.slice(0, 2).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
+      '<span class="tag">' + esc(d.type) + '</span>' +
       '</div>' +
-      '<div class="card-foot"><span>' + esc(d.method || "") + '</span><span>' + esc(d.platform || "") + '</span></div>' +
+      '<div class="card-foot"><span>' + esc(d.platform || "") + '</span><span>' + esc((d.mitre_attack.tactics||[])[0] ? d.mitre_attack.tactics[0].name : "") + '</span></div>' +
       '</div>';
   }
 
   function renderChips() {
     var wrap = document.getElementById("active-filters");
     var chips = [];
+    if (state.component) chips.push({ k: "component", label: "Component: " + state.component });
     if (state.tactic) chips.push({ k: "tactic", label: "Tactic: " + state.tactic });
     if (state.severity) chips.push({ k: "severity", label: "Severity: " + state.severity });
-    if (state.method) chips.push({ k: "method", label: "Method: " + state.method });
-    if (state.dataSource) chips.push({ k: "dataSource", label: "Source: " + state.dataSource });
+    if (state.type) chips.push({ k: "type", label: "Type: " + state.type });
     wrap.innerHTML = chips.map(function (c) {
       return '<button class="filter-chip" data-facet="' + c.k + '">' + esc(c.label) + ' <span class="x">&times;</span></button>';
     }).join("");
@@ -548,21 +506,14 @@
     });
   }
 
-  function updateStatsLine() {
-    var line = DATA.length + " detections · " + allTactics().length + " ATT&CK tactics · VMware ESXi batch 1";
-    if (MITRE) {
-      line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
-    }
-    document.getElementById("stats-line").textContent = line;
-  }
-
   function renderGrid() {
     var results = currentResults();
     var grid = document.getElementById("card-grid");
     document.getElementById("results-count").textContent =
       results.length + " detection" + (results.length === 1 ? "" : "s") +
       (results.length !== DATA.length ? " of " + DATA.length : "");
-    updateStatsLine();
+    document.getElementById("stats-line").textContent =
+      DATA.length + " detections (VMW-001–VMW-150) · " + allTactics().length + " ATT&CK tactics · " + allComponents().length + " VMware components";
 
     if (!results.length) {
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No detections match</h3><p>Try clearing a filter or a different search term.</p></div>';
@@ -597,19 +548,19 @@
     }).join("");
     var related = (d.related_detections || []).map(function (rid) {
       var rd = findById(rid);
-      return rd ? '<span class="related-chip" data-id="' + esc(rid) + '">' + esc(rd.title) + '</span>' : "";
+      return rd ? '<span class="related-chip" data-id="' + esc(rid) + '">' + esc(rd.vmw_id) + ' — ' + esc(rd.title) + '</span>' : "";
     }).join("");
     var tags = (d.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
 
     return '' +
       '<div class="detail-header">' +
         '<div>' +
-          '<div class="detail-title">' + esc(d.title) + '</div>' +
+          '<div class="detail-title">' + esc(d.vmw_id) + ' &mdash; ' + esc(d.title) + '</div>' +
           '<div class="detail-badges">' +
             '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span>' +
             '<span class="tag">' + esc(d.type) + '</span>' +
-            '<span class="tag">' + esc(d.method || "") + '</span>' +
-            '<span class="tag">' + esc(d.platform) + '</span>' +
+            '<span class="tag">' + esc(d.platform || "") + '</span>' +
+            '<span class="tag">' + esc(d.tool || "") + '</span>' +
             (d.confidence ? '<span class="tag">Confidence: ' + esc(d.confidence) + '</span>' : '') +
           '</div>' +
         '</div>' +
@@ -623,13 +574,10 @@
           '<table class="kv-table" style="margin-top:4px">' + techniques + '</table>' +
         '</div>' +
 
-        '<div class="detail-section"><h4>Detection Logic</h4><p>' + esc(d.detection_logic || "") + '</p></div>' +
+        '<div class="detail-section"><h4>Detection Logic / Tuning</h4><p>' + esc(d.detection_logic || "") + '</p></div>' +
 
-        (d.spl ? '<div class="detail-section"><h4>Search (Splunk SPL, adapt to your data)' +
-          '</h4><div class="code-block"><button class="copy-btn" data-copy="spl">Copy</button>' + esc(d.spl) + '</div></div>' : '') +
-
-        (d.cli_reference ? '<div class="detail-section"><h4>CLI / API Reference</h4>' +
-          '<div class="code-block"><button class="copy-btn" data-copy="cli">Copy</button>' + esc(d.cli_reference) + '</div></div>' : '') +
+        (d.aria_query ? '<div class="detail-section"><h4>Aria Search Query (VMware Aria Operations for Logs)' +
+          '</h4><div class="code-block"><button class="copy-btn" data-copy="aria_query">Copy</button>' + esc(d.aria_query) + '</div></div>' : '') +
 
         '<div class="detail-section"><h4>Data Sources</h4>' + dataSources + '</div>' +
 
@@ -646,8 +594,10 @@
         (tags ? '<div class="detail-section"><h4>Tags</h4><div class="tag-row">' + tags + '</div></div>' : '') +
 
         '<table class="kv-table" style="margin-top:4px">' +
+          '<tr><td>Catalogue ID</td><td><code>' + esc(d.vmw_id) + '</code></td></tr>' +
           '<tr><td>Analytic Story</td><td>' + esc((d.analytic_story || []).join(", ")) + '</td></tr>' +
           '<tr><td>Status</td><td>' + esc(d.status) + '</td></tr>' +
+          '<tr><td>Product Version</td><td>' + esc(d.product_version || "") + '</td></tr>' +
           '<tr><td>Author</td><td>' + esc(d.author) + '</td></tr>' +
           '<tr><td>Created / Modified</td><td>' + esc(d.created) + ' / ' + esc(d.modified) + '</td></tr>' +
           '<tr><td>Version</td><td>' + esc(d.version) + '</td></tr>' +
@@ -687,10 +637,6 @@
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") closeDetail();
-    if (e.key === "/" && document.activeElement !== document.getElementById("search-input") && !document.getElementById("overlay").hidden === false) {
-      e.preventDefault();
-      document.getElementById("search-input").focus();
-    }
   });
 
   /* ---------------------------- Toast / clipboard ---------------------------- */
@@ -724,97 +670,11 @@
     var blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = url; a.download = "threat-detection-library-export.json";
+    a.href = url; a.download = "aria-operations-for-logs-detection-catalogue-export.json";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     showToast("Exported " + results.length + " detection" + (results.length === 1 ? "" : "s"));
   });
-
-  /* ---------------------------- MITRE ATT&CK coverage (loaded from data/mitre-attack-esxi.json) ---------------------------- */
-  var MITRE = null;
-  var coverageBtn = document.getElementById("coverage-btn");
-  var TACTIC_ORDER = [
-    "Reconnaissance", "Resource Development", "Initial Access", "Execution", "Persistence",
-    "Privilege Escalation", "Stealth", "Defense Impairment", "Credential Access", "Discovery",
-    "Lateral Movement", "Collection", "Command and Control", "Exfiltration", "Impact"
-  ];
-
-  function loadMitreCoverage() {
-    fetch("data/mitre-attack-esxi.json", { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (data) {
-        MITRE = data;
-        coverageBtn.title = data.metadata.techniques_covered_by_library + " of " +
-          data.metadata.technique_count + " ATT&CK techniques for " + data.metadata.platform + " covered";
-        updateStatsLine();
-      })
-      .catch(function () {
-        // Expected when opened via file:// (browsers block fetch of local files); the
-        // button below explains this rather than failing silently.
-      });
-  }
-
-  function coverageModalHtml() {
-    var m = MITRE.metadata;
-    var pct = m.technique_count ? Math.round((m.techniques_covered_by_library / m.technique_count) * 100) : 0;
-    var byTactic = {};
-    MITRE.techniques.forEach(function (t) {
-      (t.tactics.length ? t.tactics : ["Uncategorized"]).forEach(function (tac) {
-        (byTactic[tac] = byTactic[tac] || []).push(t);
-      });
-    });
-    var order = TACTIC_ORDER.filter(function (t) { return byTactic[t]; })
-      .concat(Object.keys(byTactic).filter(function (t) { return TACTIC_ORDER.indexOf(t) === -1; }));
-
-    var groups = order.map(function (tac) {
-      var techs = byTactic[tac].slice().sort(function (a, b) { return a.attack_id < b.attack_id ? -1 : 1; });
-      var covered = techs.filter(function (t) { return t.covered_by_library; }).length;
-      var rows = techs.map(function (t) {
-        return '<div class="coverage-tech-row">' +
-          '<span><span class="ct-id">' + esc(t.attack_id) + '</span><a class="ct-name" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.name) + '</a></span>' +
-          '<span>' +
-          (t.analytic_count_platform ? '<span class="coverage-note">' + t.analytic_count_platform + ' MITRE analytic' + (t.analytic_count_platform === 1 ? '' : 's') + '</span> ' : '') +
-          '<span class="coverage-pill ' + (t.covered_by_library ? 'covered">In library' : 'gap">Not yet covered') + '</span>' +
-          '</span></div>';
-      }).join("");
-      return '<details class="coverage-tactic-group"' + (covered > 0 ? ' open' : '') + '>' +
-        '<summary><span>' + esc(tac) + '</span><span class="tcount">' + covered + ' / ' + techs.length + ' covered</span></summary>' +
-        rows + '</details>';
-    }).join("");
-
-    return '' +
-      '<div class="detail-header"><div>' +
-        '<div class="detail-title">MITRE ATT&amp;CK Coverage &mdash; ' + esc(m.platform) + '</div>' +
-        '<div class="detail-badges"><span class="tag">ATT&amp;CK spec ' + esc(m.attack_spec_version) + '</span>' +
-        '<span class="tag">Retrieved ' + esc(m.retrieved) + '</span></div>' +
-      '</div><button class="close-btn" id="coverage-close" aria-label="Close">&times;</button></div>' +
-      '<div class="detail-body">' +
-        '<div class="detail-section"><p>Every technique MITRE currently scopes to the <strong>' + esc(m.platform) +
-        '</strong> platform, cross-referenced against this library\'s detections. Each technique also shows how many ' +
-        'formal MITRE ATT&amp;CK Detection Analytics exist for it on this platform, for planning future batches.</p></div>' +
-        '<div class="coverage-summary">' +
-          '<div class="big-num">' + m.techniques_covered_by_library + ' / ' + m.technique_count + '<br><small>techniques covered</small></div>' +
-          '<div class="coverage-bar"><div class="coverage-bar-fill" style="width:' + pct + '%"></div></div>' +
-          '<div class="big-num">' + m.analytic_count + '<br><small>MITRE analytics for ' + esc(m.platform) + '</small></div>' +
-        '</div>' +
-        '<div class="detail-section">' + groups + '</div>' +
-        '<div class="detail-section"><h4>Source</h4><p class="coverage-note">' + esc(m.source) +
-        ' &middot; <a href="' + esc(m.attack_version_reference) + '" target="_blank" rel="noopener">attack.mitre.org</a></p></div>' +
-      '</div>';
-  }
-
-  function openCoverage() {
-    if (!MITRE) {
-      showToast("Coverage data not loaded — serve this page over http(s) so data/mitre-attack-esxi.json can be fetched.");
-      return;
-    }
-    document.getElementById("detail-panel").innerHTML = coverageModalHtml();
-    var overlay = document.getElementById("overlay");
-    overlay.hidden = false;
-    overlay.scrollTop = 0;
-    document.getElementById("coverage-close").addEventListener("click", closeDetail);
-  }
-  coverageBtn.addEventListener("click", openCoverage);
 
   /* ---------------------------- Search wiring ---------------------------- */
   var searchInput = document.getElementById("search-input");
@@ -833,7 +693,6 @@
     renderGrid();
   }
   render();
-  loadMitreCoverage();
 
   var initialId = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
   if (initialId && findById(initialId)) openDetail(initialId);
