@@ -47,14 +47,44 @@ public guidance from CISA, VMware/Broadcom, and Mandiant. See each entry's
 ## Repository layout
 
 ```
-data/detections.json        Canonical source of truth — one JSON object per detection.
+data/detections.json          Canonical source of truth — one JSON object per detection.
+data/mitre-attack-esxi.json   MITRE ATT&CK techniques + official Detection Analytics for the current batch's platform.
 schema/detection.schema.json  JSON Schema describing every field in an entry.
-index.template.html         Page shell (CSS/JS) with a __DETECTIONS_JSON__ marker.
-index.html                  Generated file: template + data, ready to open/deploy.
-tools/build.py               Regenerates index.html from the template + data file.
+index.template.html           Page shell (CSS/JS) with a __DETECTIONS_JSON__ marker.
+index.html                    Generated file: template + data, ready to open/deploy.
+tools/build.py                Regenerates index.html from the template + data file.
+tools/fetch_mitre_platform.py Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 ```
 
 `index.html` is generated, not hand-edited — see **Adding a new batch** below.
+
+### MITRE ATT&CK coverage data
+
+`data/mitre-attack-esxi.json` is fetched at runtime by `index.html` (the
+**ATT&CK Coverage** button in the header) — it is *not* baked into the page,
+so it can be refreshed independently of a detection batch. It's built
+straight from MITRE's official STIX corpus
+([mitre/cti](https://github.com/mitre/cti)) and contains, for the ESXi
+platform:
+
+- every non-deprecated **technique** MITRE scopes to `ESXi`, its tactic(s),
+  and whether this library currently has a detection for it
+  (`covered_by_library`) — a live gap list for planning the next batch
+- every official MITRE **Detection Analytic** scoped to `ESXi` (MITRE's
+  newer Analytics/Detection Strategy model, distinct from and complementary
+  to this library's own detections), with its log sources, mutable
+  elements, and parent technique(s)
+
+Because it's fetched with `fetch()`, the coverage button only works when the
+page is served over http(s) (e.g. GitHub Pages, `python3 -m http.server`) —
+browsers block `fetch` of local files, so it degrades to a toast message
+when opened via `file://`, same as the rest of the page's data does not.
+
+Regenerate it after a new MITRE ATT&CK release with:
+
+```bash
+python3 tools/fetch_mitre_platform.py --platform ESXi
+```
 
 ## Detection schema
 

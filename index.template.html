@@ -290,6 +290,33 @@
     .sidebar { display: none; }
     .layout { padding: 14px; }
   }
+
+  .coverage-summary {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--bg-inset); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+  }
+  .coverage-summary .big-num { font-size: 22px; font-weight: 700; }
+  .coverage-summary .big-num small { font-size: 13px; font-weight: 500; color: var(--text-faint); }
+  .coverage-bar { flex: 1 1 160px; height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; min-width: 120px; }
+  .coverage-bar-fill { height: 100%; background: var(--accent); }
+  .coverage-tactic-group { margin-top: 4px; }
+  .coverage-tactic-group summary {
+    cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--text-muted);
+    padding: 8px 0; list-style: none; display: flex; align-items: center; justify-content: space-between;
+  }
+  .coverage-tactic-group summary::-webkit-details-marker { display: none; }
+  .coverage-tactic-group summary .tcount { font-weight: 500; color: var(--text-faint); }
+  .coverage-tech-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 7px 8px; border-radius: 7px; font-size: 13px;
+  }
+  .coverage-tech-row:hover { background: var(--bg-inset); }
+  .coverage-tech-row .ct-name { color: var(--text); }
+  .coverage-tech-row .ct-id { color: var(--text-faint); font-family: ui-monospace, monospace; font-size: 11.5px; margin-right: 6px; }
+  .coverage-pill { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .coverage-pill.covered { background: var(--badge-low-bg); color: var(--badge-low-text); }
+  .coverage-pill.gap { background: var(--bg); border: 1px solid var(--border); color: var(--text-faint); }
+  .coverage-note { font-size: 12px; color: var(--text-faint); }
 </style>
 </head>
 <body>
@@ -309,6 +336,7 @@
       <span class="kbd-hint">/</span>
     </div>
     <div class="header-actions">
+      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage for this platform">ATT&amp;CK Coverage</button>
       <button class="btn" id="export-btn" title="Export current results as JSON">Export</button>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -518,14 +546,21 @@
     });
   }
 
+  function updateStatsLine() {
+    var line = DATA.length + " detections · " + allTactics().length + " ATT&CK tactics · VMware ESXi batch 1";
+    if (MITRE) {
+      line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
+    }
+    document.getElementById("stats-line").textContent = line;
+  }
+
   function renderGrid() {
     var results = currentResults();
     var grid = document.getElementById("card-grid");
     document.getElementById("results-count").textContent =
       results.length + " detection" + (results.length === 1 ? "" : "s") +
       (results.length !== DATA.length ? " of " + DATA.length : "");
-    document.getElementById("stats-line").textContent =
-      DATA.length + " detections · " + allTactics().length + " ATT&CK tactics · VMware ESXi batch 1";
+    updateStatsLine();
 
     if (!results.length) {
       grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No detections match</h3><p>Try clearing a filter or a different search term.</p></div>';
@@ -693,6 +728,92 @@
     showToast("Exported " + results.length + " detection" + (results.length === 1 ? "" : "s"));
   });
 
+  /* ---------------------------- MITRE ATT&CK coverage (loaded from data/mitre-attack-esxi.json) ---------------------------- */
+  var MITRE = null;
+  var coverageBtn = document.getElementById("coverage-btn");
+  var TACTIC_ORDER = [
+    "Reconnaissance", "Resource Development", "Initial Access", "Execution", "Persistence",
+    "Privilege Escalation", "Stealth", "Defense Impairment", "Credential Access", "Discovery",
+    "Lateral Movement", "Collection", "Command and Control", "Exfiltration", "Impact"
+  ];
+
+  function loadMitreCoverage() {
+    fetch("data/mitre-attack-esxi.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        MITRE = data;
+        coverageBtn.title = data.metadata.techniques_covered_by_library + " of " +
+          data.metadata.technique_count + " ATT&CK techniques for " + data.metadata.platform + " covered";
+        updateStatsLine();
+      })
+      .catch(function () {
+        // Expected when opened via file:// (browsers block fetch of local files); the
+        // button below explains this rather than failing silently.
+      });
+  }
+
+  function coverageModalHtml() {
+    var m = MITRE.metadata;
+    var pct = m.technique_count ? Math.round((m.techniques_covered_by_library / m.technique_count) * 100) : 0;
+    var byTactic = {};
+    MITRE.techniques.forEach(function (t) {
+      (t.tactics.length ? t.tactics : ["Uncategorized"]).forEach(function (tac) {
+        (byTactic[tac] = byTactic[tac] || []).push(t);
+      });
+    });
+    var order = TACTIC_ORDER.filter(function (t) { return byTactic[t]; })
+      .concat(Object.keys(byTactic).filter(function (t) { return TACTIC_ORDER.indexOf(t) === -1; }));
+
+    var groups = order.map(function (tac) {
+      var techs = byTactic[tac].slice().sort(function (a, b) { return a.attack_id < b.attack_id ? -1 : 1; });
+      var covered = techs.filter(function (t) { return t.covered_by_library; }).length;
+      var rows = techs.map(function (t) {
+        return '<div class="coverage-tech-row">' +
+          '<span><span class="ct-id">' + esc(t.attack_id) + '</span><a class="ct-name" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.name) + '</a></span>' +
+          '<span>' +
+          (t.analytic_count_platform ? '<span class="coverage-note">' + t.analytic_count_platform + ' MITRE analytic' + (t.analytic_count_platform === 1 ? '' : 's') + '</span> ' : '') +
+          '<span class="coverage-pill ' + (t.covered_by_library ? 'covered">In library' : 'gap">Not yet covered') + '</span>' +
+          '</span></div>';
+      }).join("");
+      return '<details class="coverage-tactic-group"' + (covered > 0 ? ' open' : '') + '>' +
+        '<summary><span>' + esc(tac) + '</span><span class="tcount">' + covered + ' / ' + techs.length + ' covered</span></summary>' +
+        rows + '</details>';
+    }).join("");
+
+    return '' +
+      '<div class="detail-header"><div>' +
+        '<div class="detail-title">MITRE ATT&amp;CK Coverage &mdash; ' + esc(m.platform) + '</div>' +
+        '<div class="detail-badges"><span class="tag">ATT&amp;CK spec ' + esc(m.attack_spec_version) + '</span>' +
+        '<span class="tag">Retrieved ' + esc(m.retrieved) + '</span></div>' +
+      '</div><button class="close-btn" id="coverage-close" aria-label="Close">&times;</button></div>' +
+      '<div class="detail-body">' +
+        '<div class="detail-section"><p>Every technique MITRE currently scopes to the <strong>' + esc(m.platform) +
+        '</strong> platform, cross-referenced against this library\'s detections. Each technique also shows how many ' +
+        'formal MITRE ATT&amp;CK Detection Analytics exist for it on this platform, for planning future batches.</p></div>' +
+        '<div class="coverage-summary">' +
+          '<div class="big-num">' + m.techniques_covered_by_library + ' / ' + m.technique_count + '<br><small>techniques covered</small></div>' +
+          '<div class="coverage-bar"><div class="coverage-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="big-num">' + m.analytic_count + '<br><small>MITRE analytics for ' + esc(m.platform) + '</small></div>' +
+        '</div>' +
+        '<div class="detail-section">' + groups + '</div>' +
+        '<div class="detail-section"><h4>Source</h4><p class="coverage-note">' + esc(m.source) +
+        ' &middot; <a href="' + esc(m.attack_version_reference) + '" target="_blank" rel="noopener">attack.mitre.org</a></p></div>' +
+      '</div>';
+  }
+
+  function openCoverage() {
+    if (!MITRE) {
+      showToast("Coverage data not loaded — serve this page over http(s) so data/mitre-attack-esxi.json can be fetched.");
+      return;
+    }
+    document.getElementById("detail-panel").innerHTML = coverageModalHtml();
+    var overlay = document.getElementById("overlay");
+    overlay.hidden = false;
+    overlay.scrollTop = 0;
+    document.getElementById("coverage-close").addEventListener("click", closeDetail);
+  }
+  coverageBtn.addEventListener("click", openCoverage);
+
   /* ---------------------------- Search wiring ---------------------------- */
   var searchInput = document.getElementById("search-input");
   searchInput.addEventListener("input", function () { state.query = searchInput.value.trim(); render(); });
@@ -710,6 +831,7 @@
     renderGrid();
   }
   render();
+  loadMitreCoverage();
 
   var initialId = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
   if (initialId && findById(initialId)) openDetail(initialId);
