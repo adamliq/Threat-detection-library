@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library of platform-specific threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references.">
+<meta name="description" content="A searchable, self-contained library combining Splunk SPL and VMware Aria Operations for Logs threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -30,6 +30,8 @@
     --badge-low-text: #1f6b34;
     --badge-info-bg: #e3e9fb;
     --badge-info-text: #2a3f8f;
+    --badge-aria-bg: #ece3fb;
+    --badge-aria-text: #5b2a8f;
     --shadow: 0 1px 2px rgba(20,22,28,0.06), 0 4px 14px rgba(20,22,28,0.06);
     --shadow-lg: 0 10px 40px rgba(20,22,28,0.18);
     --focus-ring: 0 0 0 3px rgba(164,33,46,0.35);
@@ -63,6 +65,8 @@
       --badge-low-text: #7fe0a0;
       --badge-info-bg: #1c2748;
       --badge-info-text: #a9bcf5;
+      --badge-aria-bg: #2c1f48;
+      --badge-aria-text: #c9a9f5;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
       --shadow-lg: 0 20px 60px rgba(0,0,0,0.55);
       --focus-ring: 0 0 0 3px rgba(239,93,104,0.4);
@@ -92,6 +96,8 @@
     --badge-low-text: #7fe0a0;
     --badge-info-bg: #1c2748;
     --badge-info-text: #a9bcf5;
+    --badge-aria-bg: #2c1f48;
+    --badge-aria-text: #c9a9f5;
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
     --shadow-lg: 0 20px 60px rgba(0,0,0,0.55);
     --focus-ring: 0 0 0 3px rgba(239,93,104,0.4);
@@ -317,6 +323,10 @@
   .coverage-pill.covered { background: var(--badge-low-bg); color: var(--badge-low-text); }
   .coverage-pill.gap { background: var(--bg); border: 1px solid var(--border); color: var(--text-faint); }
   .coverage-note { font-size: 12px; color: var(--text-faint); }
+
+  .card-id { font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, monospace; font-weight: 600; }
+  .tag.tool-splunk { color: var(--badge-info-text); background: var(--badge-info-bg); border-color: transparent; font-weight: 600; }
+  .tag.tool-aria { color: var(--badge-aria-text); background: var(--badge-aria-bg); border-color: transparent; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -336,12 +346,12 @@
       <span class="kbd-hint">/</span>
     </div>
     <div class="header-actions">
-      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage for this platform">ATT&amp;CK Coverage</button>
+      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage for the ESXi platform, across both catalogues">ATT&amp;CK Coverage</button>
       <button class="btn" id="export-btn" title="Export current results as JSON">Export</button>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
-      <a class="btn" href="aria-catalogue.html">Aria Ops for Logs Catalogue</a>
+      <a class="btn" href="aria-catalogue.html" title="The VMware Aria Operations for Logs catalogue on its own, without the Splunk SPL detections">Aria-only view</a>
       <a class="btn primary" href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
@@ -365,19 +375,35 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and TA field extractions before deploying.
-  &middot; <a href="aria-catalogue.html">VMware Aria Operations for Logs catalogue</a>
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL and VMware Aria Operations for Logs catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  &middot; <a href="aria-catalogue.html">Aria-only view</a>
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
 <script type="application/json" id="detections-data">__DETECTIONS_JSON__</script>
+<script type="application/json" id="aria-detections-data">__ARIA_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
 
-  var DATA = JSON.parse(document.getElementById("detections-data").textContent);
+  var SPL_ENTRIES = JSON.parse(document.getElementById("detections-data").textContent);
+  var ARIA_ENTRIES = JSON.parse(document.getElementById("aria-detections-data").textContent);
 
-  var state = { query: "", tactic: null, severity: null, method: null, dataSource: null, activeId: null };
+  // Normalize both catalogues into one array. Every original field is kept
+  // (detail rendering branches on which fields are present - d.spl vs
+  // d.aria_query, d.cli_reference, d.vmw_id, etc.); _tool and _component
+  // are added purely for unified faceting/search/display.
+  var DATA = SPL_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = d.platform === "VMware ESXi" ? "ESXi" : (d.platform || "");
+    return d;
+  }).concat(ARIA_ENTRIES.map(function (d) {
+    d._tool = d.tool || "VMware Aria Operations for Logs";
+    d._component = d.platform || "";
+    return d;
+  }));
+
+  var state = { query: "", tactic: null, severity: null, method: null, dataSource: null, tool: null, component: null, activeId: null };
 
   /* ---------------------------- Theme ---------------------------- */
   var THEME_KEY = "tdl-theme";
@@ -432,13 +458,23 @@
     DATA.forEach(function (d) { (d.data_sources || []).forEach(function (ds) { set[ds.name] = true; }); });
     return Object.keys(set).sort();
   }
+  function allTools() {
+    var set = {};
+    DATA.forEach(function (d) { if (d._tool) set[d._tool] = true; });
+    return Object.keys(set).sort();
+  }
+  function allComponents() {
+    var set = {};
+    DATA.forEach(function (d) { if (d._component) set[d._component] = true; });
+    return Object.keys(set).sort();
+  }
   var SEVERITY_ORDER = ["critical", "high", "medium", "low", "informational"];
 
   function matchesQuery(d, q) {
     if (!q) return true;
     q = q.toLowerCase();
     var haystack = [
-      d.title, d.description, d.spl, d.cli_reference, d.method,
+      d.title, d.description, d.spl, d.aria_query, d.cli_reference, d.method, d.vmw_id, d._tool, d._component,
       (d.tags || []).join(" "),
       (d.mitre_attack.techniques || []).map(function (t) { return t.id + " " + t.name; }).join(" "),
       (d.data_sources || []).map(function (s) { return s.name; }).join(" ")
@@ -450,6 +486,8 @@
     if (state.severity && d.severity !== state.severity) return false;
     if (state.method && d.method !== state.method) return false;
     if (state.dataSource && (d.data_sources || []).every(function (s) { return s.name !== state.dataSource; })) return false;
+    if (state.tool && d._tool !== state.tool) return false;
+    if (state.component && d._component !== state.component) return false;
     return true;
   }
   function filteredExcept() {
@@ -495,7 +533,17 @@
     DATA.forEach(function (d) { (d.data_sources || []).forEach(function (s) { dsCounts[s.name] = (dsCounts[s.name] || 0) + 1; }); });
     var dsOpts = allDataSources().map(function (s) { return { key: s, label: s, count: dsCounts[s] || 0 }; });
 
+    var toolCounts = {};
+    DATA.forEach(function (d) { if (d._tool) toolCounts[d._tool] = (toolCounts[d._tool] || 0) + 1; });
+    var toolOpts = allTools().map(function (t) { return { key: t, label: t, count: toolCounts[t] || 0 }; });
+
+    var componentCounts = {};
+    DATA.forEach(function (d) { if (d._component) componentCounts[d._component] = (componentCounts[d._component] || 0) + 1; });
+    var componentOpts = allComponents().map(function (c) { return { key: c, label: c, count: componentCounts[c] || 0 }; });
+
     sidebar.innerHTML =
+      section("Catalogue / Tool", toolOpts, state.tool, "tool") +
+      section("Component", componentOpts, state.component, "component") +
       section("MITRE ATT&CK Tactic", tacticOpts, state.tactic, "tactic") +
       section("Severity", severityOpts, state.severity, "severity") +
       section("Method", methodOpts, state.method, "method") +
@@ -518,24 +566,31 @@
   }
 
   /* ---------------------------- Cards ---------------------------- */
+  var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function cardHtml(d) {
     var tactics = (d.mitre_attack.tactics || []).map(function (t) { return t.name; });
     var techniques = (d.mitre_attack.techniques || []).map(function (t) { return t.id; });
+    var toolClass = TOOL_CLASS[d._tool] || "";
     return '<div class="card" data-id="' + esc(d.id) + '" tabindex="0">' +
-      '<div class="card-top"><div class="card-title">' + esc(d.title) + '</div>' +
+      '<div class="card-top"><div>' +
+      (d.vmw_id ? '<div class="card-id">' + esc(d.vmw_id) + '</div>' : '') +
+      '<div class="card-title">' + esc(d.title) + '</div></div>' +
       '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span></div>' +
       '<div class="card-desc">' + esc(d.description) + '</div>' +
       '<div class="tag-row">' +
+      '<span class="tag ' + toolClass + '">' + esc(d._tool) + '</span>' +
       techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
       tactics.slice(0, 2).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
       '</div>' +
-      '<div class="card-foot"><span>' + esc(d.method || "") + '</span><span>' + esc(d.platform || "") + '</span></div>' +
+      '<div class="card-foot"><span>' + esc(d._component || "") + '</span><span>' + esc(d.method || "") + '</span></div>' +
       '</div>';
   }
 
   function renderChips() {
     var wrap = document.getElementById("active-filters");
     var chips = [];
+    if (state.tool) chips.push({ k: "tool", label: "Tool: " + state.tool });
+    if (state.component) chips.push({ k: "component", label: "Component: " + state.component });
     if (state.tactic) chips.push({ k: "tactic", label: "Tactic: " + state.tactic });
     if (state.severity) chips.push({ k: "severity", label: "Severity: " + state.severity });
     if (state.method) chips.push({ k: "method", label: "Method: " + state.method });
@@ -549,7 +604,8 @@
   }
 
   function updateStatsLine() {
-    var line = DATA.length + " detections · " + allTactics().length + " ATT&CK tactics · VMware ESXi batch 1";
+    var line = DATA.length + " detections (" + SPL_ENTRIES.length + " Splunk SPL + " + ARIA_ENTRIES.length +
+      " Aria Operations for Logs) · " + allTactics().length + " ATT&CK tactics";
     if (MITRE) {
       line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
     }
@@ -597,19 +653,26 @@
     }).join("");
     var related = (d.related_detections || []).map(function (rid) {
       var rd = findById(rid);
-      return rd ? '<span class="related-chip" data-id="' + esc(rid) + '">' + esc(rd.title) + '</span>' : "";
+      if (!rd) return "";
+      var label = rd.vmw_id ? rd.vmw_id + " — " + rd.title : rd.title;
+      return '<span class="related-chip" data-id="' + esc(rid) + '">' + esc(label) + '</span>';
     }).join("");
     var tags = (d.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
+    var mitreAnalytics = (d.mitre_analytics || []).map(function (a) {
+      return '<li><a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.id) + (a.name ? ': ' + esc(a.name) : '') + '</a></li>';
+    }).join("");
+    var toolClass = TOOL_CLASS[d._tool] || "";
 
     return '' +
       '<div class="detail-header">' +
         '<div>' +
-          '<div class="detail-title">' + esc(d.title) + '</div>' +
+          '<div class="detail-title">' + (d.vmw_id ? esc(d.vmw_id) + ' — ' : '') + esc(d.title) + '</div>' +
           '<div class="detail-badges">' +
             '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span>' +
+            '<span class="tag ' + toolClass + '">' + esc(d._tool) + '</span>' +
             '<span class="tag">' + esc(d.type) + '</span>' +
-            '<span class="tag">' + esc(d.method || "") + '</span>' +
-            '<span class="tag">' + esc(d.platform) + '</span>' +
+            (d.method ? '<span class="tag">' + esc(d.method) + '</span>' : '') +
+            '<span class="tag">' + esc(d._component || d.platform || "") + '</span>' +
             (d.confidence ? '<span class="tag">Confidence: ' + esc(d.confidence) + '</span>' : '') +
           '</div>' +
         '</div>' +
@@ -621,15 +684,19 @@
         '<div class="detail-section"><h4>MITRE ATT&amp;CK</h4>' +
           '<table class="kv-table"><tr><td>Tactic(s)</td><td>' + tactics + '</td></tr></table>' +
           '<table class="kv-table" style="margin-top:4px">' + techniques + '</table>' +
+          (mitreAnalytics ? '<p class="coverage-note" style="margin-top:8px">Grounded in official MITRE Detection Analytic(s):</p><ul class="ref-list">' + mitreAnalytics + '</ul>' : '') +
         '</div>' +
 
-        '<div class="detail-section"><h4>Detection Logic</h4><p>' + esc(d.detection_logic || "") + '</p></div>' +
+        '<div class="detail-section"><h4>Detection Logic' + (d.aria_query ? ' / Tuning' : '') + '</h4><p>' + esc(d.detection_logic || "") + '</p></div>' +
 
         (d.spl ? '<div class="detail-section"><h4>Search (Splunk SPL, adapt to your data)' +
           '</h4><div class="code-block"><button class="copy-btn" data-copy="spl">Copy</button>' + esc(d.spl) + '</div></div>' : '') +
 
+        (d.aria_query ? '<div class="detail-section"><h4>Aria Search Query (VMware Aria Operations for Logs)' +
+          '</h4><div class="code-block"><button class="copy-btn" data-copy="aria_query">Copy</button>' + esc(d.aria_query) + '</div></div>' : '') +
+
         (d.cli_reference ? '<div class="detail-section"><h4>CLI / API Reference</h4>' +
-          '<div class="code-block"><button class="copy-btn" data-copy="cli">Copy</button>' + esc(d.cli_reference) + '</div></div>' : '') +
+          '<div class="code-block"><button class="copy-btn" data-copy="cli_reference">Copy</button>' + esc(d.cli_reference) + '</div></div>' : '') +
 
         '<div class="detail-section"><h4>Data Sources</h4>' + dataSources + '</div>' +
 
@@ -646,6 +713,7 @@
         (tags ? '<div class="detail-section"><h4>Tags</h4><div class="tag-row">' + tags + '</div></div>' : '') +
 
         '<table class="kv-table" style="margin-top:4px">' +
+          (d.vmw_id ? '<tr><td>Catalogue ID</td><td><code>' + esc(d.vmw_id) + '</code></td></tr>' : '') +
           '<tr><td>Analytic Story</td><td>' + esc((d.analytic_story || []).join(", ")) + '</td></tr>' +
           '<tr><td>Status</td><td>' + esc(d.status) + '</td></tr>' +
           '<tr><td>Author</td><td>' + esc(d.author) + '</td></tr>' +
@@ -790,8 +858,9 @@
       '</div><button class="close-btn" id="coverage-close" aria-label="Close">&times;</button></div>' +
       '<div class="detail-body">' +
         '<div class="detail-section"><p>Every technique MITRE currently scopes to the <strong>' + esc(m.platform) +
-        '</strong> platform, cross-referenced against this library\'s detections. Each technique also shows how many ' +
-        'formal MITRE ATT&amp;CK Detection Analytics exist for it on this platform, for planning future batches.</p></div>' +
+        '</strong> platform, cross-referenced against detections in both catalogues (Splunk SPL and VMware Aria ' +
+        'Operations for Logs). Each technique also shows how many formal MITRE ATT&amp;CK Detection Analytics exist ' +
+        'for it on this platform, for planning future batches.</p></div>' +
         '<div class="coverage-summary">' +
           '<div class="big-num">' + m.techniques_covered_by_library + ' / ' + m.technique_count + '<br><small>techniques covered</small></div>' +
           '<div class="coverage-bar"><div class="coverage-bar-fill" style="width:' + pct + '%"></div></div>' +

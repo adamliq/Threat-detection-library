@@ -8,7 +8,8 @@ For the given --platform (as it appears in MITRE's x_mitre_platforms, e.g.
 
   - every non-deprecated, non-revoked technique/sub-technique scoped to that
     platform, its tactic(s), and whether it's covered by this repo's
-    data/detections.json (matched on mitre_attack.techniques[].id)
+    detection catalogues (matched on mitre_attack.techniques[].id across
+    data/detections.json and data/aria-detections.json by default)
   - every official MITRE ATT&CK Detection Analytic (x-mitre-analytic)
     scoped to that platform, resolved to its parent Detection Strategy and
     the technique(s) that strategy detects
@@ -57,7 +58,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--platform", required=True, help='MITRE platform name exactly as used in x_mitre_platforms, e.g. "ESXi"')
     ap.add_argument("--bundle", help="Path to a local enterprise-attack.json (skips the download)")
-    ap.add_argument("--detections", default=str(ROOT / "data" / "detections.json"), help="Path to this repo's detections.json, for coverage cross-reference")
+    ap.add_argument("--detections", action="append", default=None,
+                     help="Path to a detections JSON file to cross-reference for coverage (repeatable; "
+                          "any file whose entries expose mitre_attack.techniques[].id works, including "
+                          "data/aria-detections.json). Default: data/detections.json and data/aria-detections.json.")
     ap.add_argument("--output", help="Output path (default: data/mitre-attack-<platform-lower>.json)")
     args = ap.parse_args()
 
@@ -165,9 +169,15 @@ def main():
             "has_platform_analytic": platform_analytic_count > 0,
         })
 
+    detections_paths = args.detections or [
+        str(ROOT / "data" / "detections.json"),
+        str(ROOT / "data" / "aria-detections.json"),
+    ]
     our_technique_ids = set()
-    detections_path = pathlib.Path(args.detections)
-    if detections_path.exists():
+    for p in detections_paths:
+        detections_path = pathlib.Path(p)
+        if not detections_path.exists():
+            continue
         our_detections = json.loads(detections_path.read_text(encoding="utf-8"))
         for d in our_detections:
             for t in d.get("mitre_attack", {}).get("techniques", []):

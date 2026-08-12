@@ -8,17 +8,29 @@ but for full detection rules rather than raw SPL snippets.
 
 Open `index.html` directly in a browser, or serve the repo statically (e.g.
 GitHub Pages) — there's no build step or server dependency to browse it.
-Search, filter by MITRE ATT&CK tactic / severity / method / data source,
-open any card for the full write-up, copy the search or CLI reference, and
-export the current (filtered) result set as JSON.
+Search, filter by catalogue/tool, MITRE ATT&CK tactic, severity, method,
+component, or data source, open any card for the full write-up, copy the
+search/query/CLI reference, and export the current (filtered) result set
+as JSON.
 
-The repo currently holds two independent catalogues, cross-linked from each
-page's header/footer:
+The repo holds two catalogues of detection content, written in two
+different query languages for two different tools — combined into one
+filterable view:
 
-| Catalogue | Page | Query language | Scope |
+| Catalogue | Query language | Scope | Detections |
 |---|---|---|---|
-| ESXi / Splunk | `index.html` | Splunk SPL | 31 detections, VMware ESXi hypervisor only |
-| VMware Aria Operations for Logs | `aria-catalogue.html` | Aria search expressions | 150 detections, the whole vSphere stack (vCenter, SSO, ESXi, storage, networking, cluster) |
+| ESXi / Splunk | Splunk SPL | VMware ESXi hypervisor only | 31 |
+| VMware Aria Operations for Logs | Aria search expressions | The whole vSphere stack (vCenter, SSO, ESXi, storage, networking, cluster) | 150 |
+
+`index.html` is the **combined library** — all 181 detections from both
+catalogues, filterable by a **Catalogue / Tool** facet (so you can view
+either one alone or both together) alongside the usual tactic/severity/
+component/method/data-source facets. A detail card renders whichever
+query type applies (a Splunk SPL search block for ESXi/Splunk entries, an
+Aria search query block for Aria entries) plus a CLI/API reference where
+one exists. `aria-catalogue.html` remains available as a lighter,
+Aria-only view for people who only want that slice; the two pages are
+cross-linked from each other's header and footer.
 
 ## Batch 1: VMware ESXi
 
@@ -121,24 +133,27 @@ isn't overwritten.
 
 ```
 data/detections.json           Canonical source of truth for the ESXi/Splunk catalogue.
-data/mitre-attack-esxi.json    MITRE ATT&CK techniques + official Detection Analytics for ESXi.
 data/aria-detections.json      Canonical data for the Aria Operations for Logs catalogue (generated - see below).
+data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across BOTH catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
-index.template.html            ESXi/Splunk page shell (CSS/JS) with a __DETECTIONS_JSON__ marker.
-index.html                     Generated: template + data/detections.json.
-aria-catalogue.template.html   Aria catalogue page shell with an __ARIA_DETECTIONS_JSON__ marker.
-aria-catalogue.html            Generated: template + data/aria-detections.json.
-tools/build.py                 Regenerates index.html.
+index.template.html            Combined-library page shell (CSS/JS) with __DETECTIONS_JSON__ and __ARIA_DETECTIONS_JSON__ markers.
+index.html                     Generated: template + BOTH data files. The primary, combined, filterable page.
+aria-catalogue.template.html   Aria-only page shell with an __ARIA_DETECTIONS_JSON__ marker.
+aria-catalogue.html            Generated: template + data/aria-detections.json. Aria catalogue on its own.
+tools/build.py                 Regenerates index.html from both data/detections.json and data/aria-detections.json.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
-tools/build_aria.py            Regenerates aria-catalogue.html.
+tools/build_aria.py            Regenerates aria-catalogue.html from data/aria-detections.json.
 ```
 
 Both `index.html` and `aria-catalogue.html` are generated, not hand-edited
 — see **Adding a new batch** and **VMware Aria Operations for Logs
-Catalogue** above.
+Catalogue** below. Whenever you touch either data file, re-run
+`tools/build.py` so the combined page picks up the change (and
+`tools/build_aria.py` too if you touched `data/aria-detections.json`, to
+keep the Aria-only page in sync).
 
 ### MITRE ATT&CK coverage data
 
@@ -151,7 +166,10 @@ platform:
 
 - every non-deprecated **technique** MITRE scopes to `ESXi`, its tactic(s),
   and whether this library currently has a detection for it
-  (`covered_by_library`) — a live gap list for planning the next batch
+  (`covered_by_library`) — a live gap list for planning the next batch.
+  Coverage is computed across **both** `data/detections.json` and
+  `data/aria-detections.json`, since an ESXi technique covered only in the
+  Aria catalogue still counts.
 - every official MITRE **Detection Analytic** scoped to `ESXi` (MITRE's
   newer Analytics/Detection Strategy model, distinct from and complementary
   to this library's own detections), with its log sources, mutable
@@ -162,10 +180,13 @@ page is served over http(s) (e.g. GitHub Pages, `python3 -m http.server`) —
 browsers block `fetch` of local files, so it degrades to a toast message
 when opened via `file://`, same as the rest of the page's data does not.
 
-Regenerate it after a new MITRE ATT&CK release with:
+Regenerate it after a new MITRE ATT&CK release, or after adding detections
+to either catalogue, with:
 
 ```bash
 python3 tools/fetch_mitre_platform.py --platform ESXi
+# cross-references data/detections.json + data/aria-detections.json by default;
+# pass --detections explicitly (repeatable) to override which file(s) to check.
 ```
 
 ## Detection schema
@@ -197,8 +218,9 @@ The key fields:
 
 1. Append new detection objects to `data/detections.json` (validate against
    `schema/detection.schema.json`).
-2. If you need to change the page itself (layout, filters, styling), edit
-   `index.template.html` — leave the `__DETECTIONS_JSON__` marker in place.
+2. If you need to change the combined page itself (layout, filters,
+   styling), edit `index.template.html` — leave the `__DETECTIONS_JSON__`
+   and `__ARIA_DETECTIONS_JSON__` markers in place.
 3. Regenerate the static page:
 
    ```bash
