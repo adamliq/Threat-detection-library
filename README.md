@@ -13,9 +13,9 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds five catalogues of detection content, spanning two
-different query languages and nine platform families — combined into one
-filterable view:
+The repo holds six catalogues of detection content, spanning two
+different query languages and eleven platform families — combined into
+one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
 |---|---|---|---|
@@ -24,17 +24,16 @@ filterable view:
 | Red Hat / Splunk | Splunk SPL | RHEL, Red Hat IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite, plus cross-platform (`RH-X-###`) correlations | 171 |
 | Fortinet / Splunk | Splunk SPL | FortiGate, FortiManager, FortiAnalyzer, FortiAuthenticator, FortiClient/EMS, FortiEDR, FortiWeb, FortiMail, FortiProxy, FortiSandbox, plus cross-product (`FNT-X-###`) Security Fabric correlations | 206 |
 | Dell iDRAC / Splunk | Splunk SPL | Dell iDRAC, Lifecycle Controller, Redfish, RACADM, IPMI, Dell OpenManage Enterprise, plus cross-platform (`DELL-X-###`) correlations | 96 |
+| HPE iLO / Splunk | Splunk SPL | HPE iLO, Remote Console, Virtual Media, UEFI/BIOS/Firmware, Redfish, Integrated Management Log, Active Health System, HPE OneView, plus cross-platform (`HPE-X-###`) correlations | 107 |
 
-`index.html` is the **combined library** — all 654 detections from all
-five catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 761 detections from all
+six catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. A detail card renders whichever
 query type applies (a Splunk SPL search block for ESXi, Red Hat,
-Fortinet, and iDRAC entries, an Aria search query block for Aria
+Fortinet, iDRAC, and iLO entries, an Aria search query block for Aria
 entries) plus a CLI/API reference, auditd rule set, or risk/maturity/CIM
-metadata where present. `aria-catalogue.html` remains available as a
-lighter, Aria-only view for people who only want that slice; the two
-pages are cross-linked from each other's header and footer.
+metadata where present.
 
 ## Batch 1: VMware ESXi
 
@@ -100,13 +99,16 @@ to `T1685`/`T1686` accordingly.
 
 ## VMware Aria Operations for Logs Catalogue
 
-`aria-catalogue.html` is a second, independent catalogue: 150 detections
-(`VMW-001`–`VMW-150`) spanning the full vSphere stack — vCenter/SSO
-identity and access, ESXi host security configuration, virtual networking,
-storage/datastores, cluster HA/DRS, the vCenter control plane, content
-libraries, and guest operations — written as **VMware Aria Operations for
-Logs search expressions** rather than Splunk SPL, since Aria is a different
-query language with its own field-extraction model per content pack.
+`data/aria-detections.json` is a second, independent catalogue: 150
+detections (`VMW-001`–`VMW-150`) spanning the full vSphere stack —
+vCenter/SSO identity and access, ESXi host security configuration,
+virtual networking, storage/datastores, cluster HA/DRS, the vCenter
+control plane, content libraries, and guest operations — written as
+**VMware Aria Operations for Logs search expressions** rather than
+Splunk SPL, since Aria is a different query language with its own
+field-extraction model per content pack. These detections live only in
+the combined `index.html` library — there is no standalone Aria-only
+page.
 
 Its canonical source is human-authored markdown, not hand-written JSON:
 [`docs/aria-catalogue-source.md`](docs/aria-catalogue-source.md) holds one
@@ -125,12 +127,12 @@ in the same `### VMW-XXX` format, then run:
 
 ```bash
 python3 tools/import_aria_catalogue.py   # docs/aria-catalogue-source.md -> data/aria-detections.json
-python3 tools/build_aria.py              # data/aria-detections.json -> aria-catalogue.html
+python3 tools/build.py                   # data/aria-detections.json (+ all other catalogues) -> index.html
 ```
 
 Editing `data/aria-detections.json` directly also works for one-off fixes
 (e.g. a description tweak) that don't belong in the source markdown — just
-re-run `tools/build_aria.py` afterward and skip the importer so your edit
+re-run `tools/build.py` afterward and skip the importer so your edit
 isn't overwritten.
 
 ## Red Hat Threat Detection Library
@@ -276,6 +278,71 @@ catalogues — every one of the ten explicitly-prioritized attack patterns
 has dedicated, full-depth coverage; the remaining breadth is extendable
 in future batches.
 
+## HPE iLO Threat Detection Library
+
+`data/ilo-detections.json` is a sixth, independent catalogue: 107
+Splunk SPL detections treating HPE iLO as Tier-0/Tier-1 out-of-band
+management infrastructure, since compromise can bypass the operating
+system entirely and provide power, console, firmware, boot, and
+hardware-level control — the same conceptual model used for the Dell
+iDRAC catalogue.
+
+| Namespace | Platform | Detections |
+|---|---|---|
+| `ILO-###` | iLO core (auth, users, directory auth, power, boot configuration, network, management services, certificates, syslog/audit tampering, Intelligent Provisioning, storage, config export/import, reset, physical security, Compute Ops Management, fleet-wide) | 50 |
+| `RC-###` | Remote Console | 7 |
+| `VMEDIA-###` | Virtual Media | 5 |
+| `FW-###` | Firmware / UEFI / BIOS / Secure Boot / TPM | 8 |
+| `HREDFISH-###` | Redfish API | 8 |
+| `IML-###` | Integrated Management Log | 8 |
+| `AHS-###` | Active Health System | 5 |
+| `ONEVIEW-###` | HPE OneView | 8 |
+| `HPE-X-###` | Cross-platform correlations | 8 |
+
+Note the `HREDFISH-###` namespace (not `REDFISH-###`, which the spec
+literally names): Redfish is a cross-vendor DMTF standard also exposed
+by Dell iDRAC, and `schema/idrac-detection.schema.json` already claims
+`REDFISH-###` for that catalogue's own Redfish detections. Since all
+detection IDs must be globally unique across the combined `index.html`
+library, this catalogue's Redfish namespace was renamed to `HREDFISH-###`
+to avoid a real ID collision (verified: `REDFISH-001` through
+`REDFISH-006` in the iDRAC catalogue vs. `HREDFISH-001` through
+`HREDFISH-008` here — zero overlap across all 761 combined-library IDs).
+
+Every entry follows `schema/ilo-detection.schema.json`. Per the spec's
+own instruction that ATT&CK does not cleanly represent out-of-band/
+firmware activity, 6 entries carry an `attack_mapping_note` field
+explaining the closest-fit technique used (most commonly `T1200`
+Hardware Additions for virtual media, and `T1542` Pre-OS Boot for boot/
+BIOS-security changes) rather than forcing a poor fit or inventing an ID.
+Separately, `T1562` (Impair Defenses) — the technique that would most
+naturally fit some anti-forensics detections — is absent from this
+deployment's validated MITRE technique cache, so those entries cite the
+validated `T1070` (Indicator Removal) instead rather than ship an
+unverified ID.
+
+The flagship attack chains named explicitly in the spec are all
+implemented as full sequence/correlation detections: **Virtual Media
+mount → one-time boot override → reboot** (`VMEDIA-003`, elevated to a
+cross-platform incident view in `HPE-X-001`), **privileged login →
+storage deletion → power cycle → boot failure** (`HPE-X-005`), and
+**new OneView admin/token → fleet-wide push** (`HPE-X-006`), alongside
+an iLO-to-hypervisor pivot chain (`HPE-X-002`), an identity-compromise-
+to-iLO chain (`HPE-X-003`), a coordinated anti-forensics correlation
+(`HPE-X-004`), an OOB-access-to-OS-persistence chain (`HPE-X-007`), and
+a cross-vendor iLO/iDRAC coordinated-activity correlation (`HPE-X-008`).
+See [`docs/ilo-detection-library.md`](docs/ilo-detection-library.md) for
+coverage matrices, Priority Detection Packs (Tier 1: 25 detections, 7
+themed packs), an explicit table mapping all ten of the spec's named
+priority patterns to their detection IDs, and the detection gap analysis.
+
+This is a deliberately-scoped first release (107 detections against a
+requested 250) for the same reason as the Red Hat, Fortinet, and Dell
+iDRAC catalogues — every one of the ten explicitly-prioritized attack
+patterns has dedicated, full-depth coverage; the remaining breadth
+(per-Redfish-endpoint coverage, HPE Compute Ops Management depth,
+exhaustive OneView breadth) is extendable in future batches.
+
 ## Repository layout
 
 ```
@@ -284,6 +351,7 @@ data/aria-detections.json      Canonical data for the Aria Operations for Logs c
 data/redhat-detections.json    Canonical source of truth for the Red Hat (RHEL/IdM/AAP/Satellite) catalogue.
 data/fortinet-detections.json  Canonical source of truth for the Fortinet Security Fabric catalogue.
 data/idrac-detections.json     Canonical source of truth for the Dell iDRAC catalogue.
+data/ilo-detections.json       Canonical source of truth for the HPE iLO catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -291,27 +359,23 @@ docs/redhat-detection-library.md  Coverage matrices, Priority Detection Packs, a
 docs/fortinet-logging-requirements.md  Logging architecture, CIM mapping, normalized field schema, and gap analysis for the Fortinet catalogue.
 docs/fortinet-detection-library.md  Coverage matrices and Priority Detection Packs for the Fortinet catalogue.
 docs/idrac-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Dell iDRAC catalogue.
+docs/ilo-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the HPE iLO catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
 schema/fortinet-detection.schema.json  JSON Schema for data/fortinet-detections.json entries.
 schema/idrac-detection.schema.json  JSON Schema for data/idrac-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all five data files.
-index.html                     Generated: template + all five data files. The primary, combined, filterable page.
-aria-catalogue.template.html   Aria-only page shell with an __ARIA_DETECTIONS_JSON__ marker.
-aria-catalogue.html            Generated: template + data/aria-detections.json. Aria catalogue on its own.
-tools/build.py                 Regenerates index.html from all five data/*.json files.
+schema/ilo-detection.schema.json  JSON Schema for data/ilo-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all six data files.
+index.html                     Generated: template + all six data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all six data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
-tools/build_aria.py            Regenerates aria-catalogue.html from data/aria-detections.json.
 ```
 
-Both `index.html` and `aria-catalogue.html` are generated, not hand-edited
-— see **Adding a new batch** and **VMware Aria Operations for Logs
-Catalogue** below. Whenever you touch any data file, re-run
-`tools/build.py` so the combined page picks up the change (and
-`tools/build_aria.py` too if you touched `data/aria-detections.json`, to
-keep the Aria-only page in sync).
+`index.html` is generated, not hand-edited — see **Adding a new batch**
+below. Whenever you touch any data file, re-run `tools/build.py` so the
+combined page picks up the change.
 
 ### MITRE ATT&CK coverage data
 
@@ -380,10 +444,15 @@ The key fields:
 1. Append new detection objects to `data/detections.json` (ESXi/Splunk),
    `data/aria-detections.json` (Aria), `data/redhat-detections.json`
    (RHEL/IdM/AAP/Satellite), `data/fortinet-detections.json` (Fortinet
-   Security Fabric), or `data/idrac-detections.json` (Dell iDRAC),
-   validating against the matching schema file in `schema/`.
+   Security Fabric), `data/idrac-detections.json` (Dell iDRAC), or
+   `data/ilo-detections.json` (HPE iLO), validating against the matching
+   schema file in `schema/`. Detection IDs must be unique **across all
+   six files**, not just within one — `tools/build.py` enforces this at
+   build time (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE
+   iLO section above for why this matters with cross-vendor standards
+   like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all five `__..._JSON__`
+   styling), edit `index.template.html` — leave all six `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -426,4 +495,13 @@ etc. sourcetypes that will need to match your actual iDRAC/Lifecycle Log
 forwarding setup; 12 entries use a documented closest-fit MITRE ATT&CK
 technique (see each entry's `attack_mapping_note`) since ATT&CK has no
 dedicated technique for out-of-band virtual media or boot-configuration
-tampering.
+tampering. The HPE iLO catalogue's SPL is likewise illustrative against
+an `ilo_security`/`ilo_iml`/`ilo_redfish`/`oneview_audit` sourcetype
+convention that will need to match your actual iLO/IML/OneView
+forwarding setup; 6 entries use a documented closest-fit MITRE ATT&CK
+technique (`attack_mapping_note`) for the same out-of-band/firmware
+reason, and several anti-forensics-themed entries cite `T1070` rather
+than the more intuitive `T1562` because `T1562` was absent from this
+library's validated MITRE technique cache at authoring time — treat
+that substitution as a reasonable adjacent fit, not a claim that
+`T1562` doesn't exist in ATT&CK generally.

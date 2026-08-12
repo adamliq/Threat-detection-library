@@ -13,7 +13,9 @@ singular/mass title pairs (e.g. "Snapshot deleted" <-> "Mass snapshot
 deletion").
 
 Run this after editing docs/aria-catalogue-source.md, then run
-tools/build_aria.py to regenerate aria-catalogue.html.
+tools/build.py to regenerate the combined index.html (these detections
+are part of the combined library only; there is no standalone Aria
+page anymore).
 
 Usage:
     python3 tools/import_aria_catalogue.py

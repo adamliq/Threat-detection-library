@@ -2,13 +2,14 @@
 """
 Build index.html from index.template.html + data/detections.json +
 data/aria-detections.json + data/redhat-detections.json +
-data/fortinet-detections.json + data/idrac-detections.json.
+data/fortinet-detections.json + data/idrac-detections.json +
+data/ilo-detections.json.
 
 index.html is the combined library: it embeds the ESXi/Splunk SPL, VMware
 Aria Operations for Logs, Red Hat (RHEL/IdM/IPA/FreeIPA/AAP/Satellite),
-Fortinet Security Fabric, and Dell iDRAC Splunk SPL catalogues and lets
-you filter across all five. Run this after editing any data file (adding
-a new batch, fixing a field, etc.) to regenerate the static,
+Fortinet Security Fabric, Dell iDRAC, and HPE iLO Splunk SPL catalogues
+and lets you filter across all six. Run this after editing any data file
+(adding a new batch, fixing a field, etc.) to regenerate the static,
 self-contained index.html that GitHub Pages / file:// serves.
 
 Usage:
@@ -24,6 +25,7 @@ ARIA_DATA_FILE = ROOT / "data" / "aria-detections.json"
 REDHAT_DATA_FILE = ROOT / "data" / "redhat-detections.json"
 FORTINET_DATA_FILE = ROOT / "data" / "fortinet-detections.json"
 IDRAC_DATA_FILE = ROOT / "data" / "idrac-detections.json"
+ILO_DATA_FILE = ROOT / "data" / "ilo-detections.json"
 TEMPLATE_FILE = ROOT / "index.template.html"
 OUTPUT_FILE = ROOT / "index.html"
 MARKER = "__DETECTIONS_JSON__"
@@ -31,6 +33,7 @@ ARIA_MARKER = "__ARIA_DETECTIONS_JSON__"
 REDHAT_MARKER = "__REDHAT_DETECTIONS_JSON__"
 FORTINET_MARKER = "__FORTINET_DETECTIONS_JSON__"
 IDRAC_MARKER = "__IDRAC_DETECTIONS_JSON__"
+ILO_MARKER = "__ILO_DETECTIONS_JSON__"
 
 
 def check_ids(data, source_name):
@@ -64,8 +67,17 @@ def main():
     idrac_data = json.loads(IDRAC_DATA_FILE.read_text(encoding="utf-8"))
     check_ids(idrac_data, IDRAC_DATA_FILE.name)
 
+    ilo_data = json.loads(ILO_DATA_FILE.read_text(encoding="utf-8"))
+    check_ids(ilo_data, ILO_DATA_FILE.name)
+
+    all_ids = [d["id"] for d in data + aria_data + redhat_data + fortinet_data + idrac_data + ilo_data]
+    if len(all_ids) != len(set(all_ids)):
+        seen = set()
+        dupes = sorted({i for i in all_ids if i in seen or seen.add(i)})
+        sys.exit(f"Duplicate detection id(s) across catalogues: {dupes}")
+
     template = TEMPLATE_FILE.read_text(encoding="utf-8")
-    for marker in (MARKER, ARIA_MARKER, REDHAT_MARKER, FORTINET_MARKER, IDRAC_MARKER):
+    for marker in (MARKER, ARIA_MARKER, REDHAT_MARKER, FORTINET_MARKER, IDRAC_MARKER, ILO_MARKER):
         if marker not in template:
             sys.exit(f"Marker {marker} not found in {TEMPLATE_FILE.name}")
 
@@ -75,12 +87,13 @@ def main():
         .replace(REDHAT_MARKER, to_payload(redhat_data))
         .replace(FORTINET_MARKER, to_payload(fortinet_data))
         .replace(IDRAC_MARKER, to_payload(idrac_data))
+        .replace(ILO_MARKER, to_payload(ilo_data))
     )
     OUTPUT_FILE.write_text(output, encoding="utf-8")
     print(
         f"Built {OUTPUT_FILE.relative_to(ROOT)} from {len(data)} ESXi/Splunk SPL + "
         f"{len(aria_data)} Aria + {len(redhat_data)} Red Hat + {len(fortinet_data)} Fortinet + "
-        f"{len(idrac_data)} Dell iDRAC detection(s)."
+        f"{len(idrac_data)} Dell iDRAC + {len(ilo_data)} HPE iLO detection(s)."
     )
 
 
