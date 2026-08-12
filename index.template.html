@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining Splunk SPL and VMware Aria Operations for Logs threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, and Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite) Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -375,24 +375,26 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL and VMware Aria Operations for Logs catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, and Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite) Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
   &middot; <a href="aria-catalogue.html">Aria-only view</a>
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
 <script type="application/json" id="detections-data">__DETECTIONS_JSON__</script>
 <script type="application/json" id="aria-detections-data">__ARIA_DETECTIONS_JSON__</script>
+<script type="application/json" id="redhat-detections-data">__REDHAT_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
 
   var SPL_ENTRIES = JSON.parse(document.getElementById("detections-data").textContent);
   var ARIA_ENTRIES = JSON.parse(document.getElementById("aria-detections-data").textContent);
+  var REDHAT_ENTRIES = JSON.parse(document.getElementById("redhat-detections-data").textContent);
 
-  // Normalize both catalogues into one array. Every original field is kept
-  // (detail rendering branches on which fields are present - d.spl vs
-  // d.aria_query, d.cli_reference, d.vmw_id, etc.); _tool and _component
-  // are added purely for unified faceting/search/display.
+  // Normalize all three catalogues into one array. Every original field is
+  // kept (detail rendering branches on which fields are present - d.spl vs
+  // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
+  // and _component are added purely for unified faceting/search/display.
   var DATA = SPL_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = d.platform === "VMware ESXi" ? "ESXi" : (d.platform || "");
@@ -400,6 +402,10 @@
   }).concat(ARIA_ENTRIES.map(function (d) {
     d._tool = d.tool || "VMware Aria Operations for Logs";
     d._component = d.platform || "";
+    return d;
+  })).concat(REDHAT_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = (d.platform || []).join(" / ");
     return d;
   }));
 
@@ -448,9 +454,10 @@
     DATA.forEach(function (d) { (d.mitre_attack.tactics || []).forEach(function (t) { set[t.name] = true; }); });
     return Object.keys(set).sort();
   }
+  function methodOf(d) { return d.method || d.detection_type || null; }
   function allMethods() {
     var set = {};
-    DATA.forEach(function (d) { if (d.method) set[d.method] = true; });
+    DATA.forEach(function (d) { var m = methodOf(d); if (m) set[m] = true; });
     return Object.keys(set).sort();
   }
   function allDataSources() {
@@ -474,8 +481,11 @@
     if (!q) return true;
     q = q.toLowerCase();
     var haystack = [
-      d.title, d.description, d.spl, d.aria_query, d.cli_reference, d.method, d.vmw_id, d._tool, d._component,
+      d.title, d.description, d.spl, d.aria_query, d.cli_reference, d.method, d.detection_type, d.component,
+      d.vmw_id, d.tuning_guidance, d.response_guidance, d._tool, d._component,
       (d.tags || []).join(" "),
+      (d.audit_rules || []).join(" "),
+      (d.required_fields || []).join(" "),
       (d.mitre_attack.techniques || []).map(function (t) { return t.id + " " + t.name; }).join(" "),
       (d.data_sources || []).map(function (s) { return s.name; }).join(" ")
     ].join(" ").toLowerCase();
@@ -484,7 +494,7 @@
   function matchesFilters(d) {
     if (state.tactic && (d.mitre_attack.tactics || []).every(function (t) { return t.name !== state.tactic; })) return false;
     if (state.severity && d.severity !== state.severity) return false;
-    if (state.method && d.method !== state.method) return false;
+    if (state.method && methodOf(d) !== state.method) return false;
     if (state.dataSource && (d.data_sources || []).every(function (s) { return s.name !== state.dataSource; })) return false;
     if (state.tool && d._tool !== state.tool) return false;
     if (state.component && d._component !== state.component) return false;
@@ -526,7 +536,7 @@
     var tacticOpts = allTactics().map(function (t) { return { key: t, label: t, count: tacticCounts[t] || 0 }; });
 
     var methodCounts = {};
-    DATA.forEach(function (d) { if (d.method) methodCounts[d.method] = (methodCounts[d.method] || 0) + 1; });
+    DATA.forEach(function (d) { var m = methodOf(d); if (m) methodCounts[m] = (methodCounts[m] || 0) + 1; });
     var methodOpts = allMethods().map(function (m) { return { key: m, label: m, count: methodCounts[m] || 0 }; });
 
     var dsCounts = {};
@@ -546,7 +556,7 @@
       section("Component", componentOpts, state.component, "component") +
       section("MITRE ATT&CK Tactic", tacticOpts, state.tactic, "tactic") +
       section("Severity", severityOpts, state.severity, "severity") +
-      section("Method", methodOpts, state.method, "method") +
+      section("Method / Detection Type", methodOpts, state.method, "method") +
       section("Data Source", dsOpts, state.dataSource, "dataSource");
 
     sidebar.querySelectorAll(".filter-option").forEach(function (el) {
@@ -567,13 +577,19 @@
 
   /* ---------------------------- Cards ---------------------------- */
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
+  function idBadgeOf(d) {
+    if (d.vmw_id) return d.vmw_id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X)-[0-9]{3}$/.test(d.id)) return d.id;
+    return null;
+  }
   function cardHtml(d) {
     var tactics = (d.mitre_attack.tactics || []).map(function (t) { return t.name; });
     var techniques = (d.mitre_attack.techniques || []).map(function (t) { return t.id; });
     var toolClass = TOOL_CLASS[d._tool] || "";
+    var idBadge = idBadgeOf(d);
     return '<div class="card" data-id="' + esc(d.id) + '" tabindex="0">' +
       '<div class="card-top"><div>' +
-      (d.vmw_id ? '<div class="card-id">' + esc(d.vmw_id) + '</div>' : '') +
+      (idBadge ? '<div class="card-id">' + esc(idBadge) + '</div>' : '') +
       '<div class="card-title">' + esc(d.title) + '</div></div>' +
       '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span></div>' +
       '<div class="card-desc">' + esc(d.description) + '</div>' +
@@ -582,7 +598,7 @@
       techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
       tactics.slice(0, 2).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
       '</div>' +
-      '<div class="card-foot"><span>' + esc(d._component || "") + '</span><span>' + esc(d.method || "") + '</span></div>' +
+      '<div class="card-foot"><span>' + esc(d._component || "") + '</span><span>' + esc(methodOf(d) || "") + '</span></div>' +
       '</div>';
   }
 
@@ -604,8 +620,8 @@
   }
 
   function updateStatsLine() {
-    var line = DATA.length + " detections (" + SPL_ENTRIES.length + " Splunk SPL + " + ARIA_ENTRIES.length +
-      " Aria Operations for Logs) · " + allTactics().length + " ATT&CK tactics";
+    var line = DATA.length + " detections (" + SPL_ENTRIES.length + " ESXi/Splunk SPL + " + ARIA_ENTRIES.length +
+      " Aria Operations for Logs + " + REDHAT_ENTRIES.length + " Red Hat Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     if (MITRE) {
       line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
     }
@@ -654,7 +670,8 @@
     var related = (d.related_detections || []).map(function (rid) {
       var rd = findById(rid);
       if (!rd) return "";
-      var label = rd.vmw_id ? rd.vmw_id + " — " + rd.title : rd.title;
+      var rIdBadge = idBadgeOf(rd);
+      var label = rIdBadge ? rIdBadge + " — " + rd.title : rd.title;
       return '<span class="related-chip" data-id="' + esc(rid) + '">' + esc(label) + '</span>';
     }).join("");
     var tags = (d.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
@@ -662,17 +679,37 @@
       return '<li><a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.id) + (a.name ? ': ' + esc(a.name) : '') + '</a></li>';
     }).join("");
     var toolClass = TOOL_CLASS[d._tool] || "";
+    var idBadge = idBadgeOf(d);
+
+    var requiredFields = (d.required_fields || []).map(function (f) { return '<li><code>' + esc(f) + '</code></li>'; }).join("");
+    var auditRules = (d.audit_rules || []).join("\n");
+    var threshold = d.threshold ? [
+      d.threshold.count != null ? '<tr><td>Count</td><td>' + esc(d.threshold.count) + '</td></tr>' : '',
+      d.threshold.distinct_count != null ? '<tr><td>Distinct count</td><td>' + esc(d.threshold.distinct_count) + '</td></tr>' : '',
+      d.threshold.time_window ? '<tr><td>Time window</td><td>' + esc(d.threshold.time_window) + '</td></tr>' : '',
+      d.threshold.baseline_condition ? '<tr><td>Baseline condition</td><td>' + esc(d.threshold.baseline_condition) + '</td></tr>' : ''
+    ].join("") : "";
+    var falsePositivesText = d.known_false_positives || d.tuning_guidance || "";
+    var falsePositivesLabel = d.known_false_positives ? "Known False Positives" : "Tuning Guidance";
+    var riskRows = d.risk_scoring ? (
+      '<tr><td>Risk score</td><td><strong>' + esc(d.risk_scoring.score) + '</strong> / 125 (severity ' + esc(d.risk_scoring.severity) +
+        ' &times; confidence ' + esc(d.risk_scoring.confidence) + ' &times; impact ' + esc(d.risk_scoring.impact) + ')</td></tr>' +
+      (d.detection_maturity ? '<tr><td>Detection maturity</td><td>' + esc(d.detection_maturity) + '</td></tr>' : '') +
+      (d.false_positive_rating ? '<tr><td>False positive rating</td><td>' + esc(d.false_positive_rating) + '</td></tr>' : '') +
+      (d.telemetry_requirement ? '<tr><td>Telemetry requirement</td><td>' + esc(d.telemetry_requirement) + '</td></tr>' : '') +
+      (d.requires_auditd != null ? '<tr><td>Requires auditd</td><td>' + (d.requires_auditd ? "Yes" : "No") + '</td></tr>' : '')
+    ) : "";
 
     return '' +
       '<div class="detail-header">' +
         '<div>' +
-          '<div class="detail-title">' + (d.vmw_id ? esc(d.vmw_id) + ' — ' : '') + esc(d.title) + '</div>' +
+          '<div class="detail-title">' + (idBadge ? esc(idBadge) + ' — ' : '') + esc(d.title) + '</div>' +
           '<div class="detail-badges">' +
             '<span class="badge ' + esc(d.severity) + '">' + esc(d.severity) + '</span>' +
             '<span class="tag ' + toolClass + '">' + esc(d._tool) + '</span>' +
-            '<span class="tag">' + esc(d.type) + '</span>' +
-            (d.method ? '<span class="tag">' + esc(d.method) + '</span>' : '') +
-            '<span class="tag">' + esc(d._component || d.platform || "") + '</span>' +
+            (d.type ? '<span class="tag">' + esc(d.type) + '</span>' : '') +
+            (methodOf(d) ? '<span class="tag">' + esc(methodOf(d)) + '</span>' : '') +
+            '<span class="tag">' + esc(d._component || (Array.isArray(d.platform) ? d.platform.join(" / ") : d.platform) || "") + '</span>' +
             (d.confidence ? '<span class="tag">Confidence: ' + esc(d.confidence) + '</span>' : '') +
           '</div>' +
         '</div>' +
@@ -698,13 +735,24 @@
         (d.cli_reference ? '<div class="detail-section"><h4>CLI / API Reference</h4>' +
           '<div class="code-block"><button class="copy-btn" data-copy="cli_reference">Copy</button>' + esc(d.cli_reference) + '</div></div>' : '') +
 
+        (requiredFields ? '<div class="detail-section"><h4>Required Fields</h4><ul>' + requiredFields + '</ul></div>' : '') +
+
+        (threshold ? '<div class="detail-section"><h4>Threshold</h4><table class="kv-table">' + threshold + '</table></div>' : '') +
+
         '<div class="detail-section"><h4>Data Sources</h4>' + dataSources + '</div>' +
 
-        '<div class="detail-section"><h4>How to Implement</h4><p>' + esc(d.how_to_implement || "") + '</p></div>' +
+        (auditRules ? '<div class="detail-section"><h4>Required auditd Rules</h4>' +
+          '<div class="code-block"><button class="copy-btn" data-copy="audit_rules_joined">Copy</button>' + esc(auditRules) + '</div></div>' : '') +
 
-        '<div class="detail-section"><h4>Known False Positives</h4><p>' + esc(d.known_false_positives || "") + '</p></div>' +
+        (d.how_to_implement ? '<div class="detail-section"><h4>How to Implement</h4><p>' + esc(d.how_to_implement) + '</p></div>' : '') +
+
+        (falsePositivesText ? '<div class="detail-section"><h4>' + falsePositivesLabel + '</h4><p>' + esc(falsePositivesText) + '</p></div>' : '') +
+
+        (d.response_guidance ? '<div class="detail-section"><h4>Response Guidance</h4><p>' + esc(d.response_guidance) + '</p></div>' : '') +
 
         (investigation ? '<div class="detail-section"><h4>Investigation Steps</h4><ul>' + investigation + '</ul></div>' : '') +
+
+        (riskRows ? '<div class="detail-section"><h4>Risk &amp; Maturity</h4><table class="kv-table">' + riskRows + '</table></div>' : '') +
 
         (references ? '<div class="detail-section"><h4>References</h4><ul class="ref-list">' + references + '</ul></div>' : '') +
 
@@ -713,9 +761,10 @@
         (tags ? '<div class="detail-section"><h4>Tags</h4><div class="tag-row">' + tags + '</div></div>' : '') +
 
         '<table class="kv-table" style="margin-top:4px">' +
-          (d.vmw_id ? '<tr><td>Catalogue ID</td><td><code>' + esc(d.vmw_id) + '</code></td></tr>' : '') +
-          '<tr><td>Analytic Story</td><td>' + esc((d.analytic_story || []).join(", ")) + '</td></tr>' +
-          '<tr><td>Status</td><td>' + esc(d.status) + '</td></tr>' +
+          (idBadge ? '<tr><td>Catalogue ID</td><td><code>' + esc(idBadge) + '</code></td></tr>' : '') +
+          (d.component ? '<tr><td>Component</td><td>' + esc(d.component) + '</td></tr>' : '') +
+          (d.analytic_story && d.analytic_story.length ? '<tr><td>Analytic Story</td><td>' + esc(d.analytic_story.join(", ")) + '</td></tr>' : '') +
+          (d.status ? '<tr><td>Status</td><td>' + esc(d.status) + '</td></tr>' : '') +
           '<tr><td>Author</td><td>' + esc(d.author) + '</td></tr>' +
           '<tr><td>Created / Modified</td><td>' + esc(d.created) + ' / ' + esc(d.modified) + '</td></tr>' +
           '<tr><td>Version</td><td>' + esc(d.version) + '</td></tr>' +
@@ -740,7 +789,8 @@
     document.querySelectorAll(".copy-btn").forEach(function (el) {
       el.addEventListener("click", function () {
         var field = el.getAttribute("data-copy");
-        copyToClipboard(d[field] || "");
+        var text = field === "audit_rules_joined" ? (d.audit_rules || []).join("\n") : (d[field] || "");
+        copyToClipboard(text);
       });
     });
     if (history.replaceState) history.replaceState(null, "", "#" + id);
