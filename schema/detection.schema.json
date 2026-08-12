@@ -30,6 +30,15 @@
         "techniques": { "type": "array", "items": { "type": "object", "required": ["id", "name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "url": { "type": "string" } } } }
       }
     },
+    "mitre_analytics": {
+      "type": "array",
+      "description": "Provenance links to the official MITRE ATT&CK Detection Analytic(s) (x-mitre-analytic objects, see data/mitre-attack-<platform>.json) this entry is grounded in, if any.",
+      "items": {
+        "type": "object",
+        "required": ["id", "url"],
+        "properties": { "id": { "type": "string", "description": "MITRE analytic ID, e.g. AN2044" }, "name": { "type": "string" }, "url": { "type": "string" } }
+      }
+    },
     "kill_chain_phases": { "type": "array", "items": { "type": "string" } },
     "data_sources": {
       "type": "array",

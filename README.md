@@ -44,6 +44,36 @@ public guidance from CISA, VMware/Broadcom, and Mandiant. See each entry's
 | 17 | ESXi VM Powered Off via VIM-CMD | VIM-CMD | Critical |
 | 18 | ESXi VIB Acceptance Level Set to Community Supported via ESXCLI | ESXCLI | Critical |
 
+## Batch 2: MITRE-ATT&CK-driven gap fill (ESXi)
+
+Sourced by diffing the library against `data/mitre-attack-esxi.json` — every
+entry below is grounded in a real MITRE ATT&CK Detection Analytic for the
+ESXi platform (see each entry's `mitre_analytics` field for the exact
+analytic ID). Raised ESXi ATT&CK technique coverage from 7/117 to 22/117.
+
+| # | Detection | Method | Severity |
+|---|---|---|---|
+| 19 | ESXi Lockdown Mode Disabled via ESXCLI or VIM-CMD | ESXCLI / VIM-CMD | Critical |
+| 20 | ESXi Local Account Removed or Password Reset via ESXCLI | ESXCLI | Critical |
+| 21 | SSH Authorized Keys Modified on ESXi Host | Shell | Critical |
+| 22 | ESXi Malicious VIB Installed via ESXCLI | ESXCLI | Critical |
+| 23 | New Local Account Created on ESXi Host via ESXCLI | ESXCLI | High |
+| 24 | ESXi Root/Default Account Login Anomaly | Shell / API | High |
+| 25 | ESXi Shell Command History Cleared or Disabled | Shell | High |
+| 26 | ESXi Log Files or Artifacts Deleted via Shell | Shell | High |
+| 27 | ESXi Host Logs Enumerated via Shell | Shell | Low |
+| 28 | ESXi VM/Datastore File Permissions Modified via Shell | Shell | Medium |
+| 29 | ESXi Host Shutdown or Rebooted via ESXCLI/VIM-CMD | ESXCLI / VIM-CMD | High |
+| 30 | ESXi Guest Operations API Abused for Command Execution | API | High |
+| 31 | ESXi VM Escape Attempt (Hypervisor Anomaly) | Hypervisor | Critical (hunting) |
+
+**Also corrected in this pass:** MITRE's current ESXi platform data no
+longer includes any `T1562.*` (Impair Defenses) sub-techniques — they were
+retired in favor of new top-level techniques under a new **Defense
+Impairment** tactic (`TA0112`). Five batch-1 entries (syslog, coredump,
+firewall ×2, VIB acceptance level) were retagged from `T1562.001/.004/.006`
+to `T1685`/`T1686` accordingly.
+
 ## Repository layout
 
 ```
@@ -96,6 +126,9 @@ The key fields:
 - `title`, `description`, `type`, `status`, `severity`, `confidence`
 - `platform`, `product_version`, `method` — what's being detected and how
 - `mitre_attack.tactics[]` / `mitre_attack.techniques[]` — ATT&CK mapping
+- `mitre_analytics[]` *(optional)* — provenance link(s) to the official
+  MITRE ATT&CK Detection Analytic(s) this entry is grounded in (see
+  `data/mitre-attack-esxi.json`)
 - `data_sources[]` — log/telemetry source name, path, and what it captures
 - `detection_logic` — plain-English description of the detection
 - `spl` — an illustrative Splunk search; sourcetypes/fields are written to be
