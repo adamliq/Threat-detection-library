@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, and HPE iLO Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, and Windows DHCP Server Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -184,9 +184,20 @@
   .filter-count-badge[hidden] { display: none; }
   .sidebar-backdrop { display: none; }
   .filter-group h3 {
+    display: flex; align-items: center; gap: 6px;
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--text-faint); margin: 0 0 8px;
+    color: var(--text-faint); margin: 0 0 8px; cursor: pointer; user-select: none;
   }
+  .filter-group-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.15s ease;
+    color: var(--text-faint);
+  }
+  .filter-group.expanded .filter-group-toggle { transform: rotate(90deg); }
+  .filter-group-title { flex: 1 1 auto; }
+  .filter-group-clear { margin-left: auto; }
+  .filter-options { display: none; }
+  .filter-group.expanded .filter-options { display: block; }
   .filter-option {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 6px 8px; border-radius: 7px; cursor: pointer; font-size: 13.5px; color: var(--text-muted);
@@ -415,7 +426,7 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, and HPE iLO Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, and Windows DHCP Server Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -425,6 +436,7 @@
 <script type="application/json" id="fortinet-detections-data">__FORTINET_DETECTIONS_JSON__</script>
 <script type="application/json" id="idrac-detections-data">__IDRAC_DETECTIONS_JSON__</script>
 <script type="application/json" id="ilo-detections-data">__ILO_DETECTIONS_JSON__</script>
+<script type="application/json" id="dhcp-detections-data">__DHCP_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -435,8 +447,9 @@
   var FORTINET_ENTRIES = JSON.parse(document.getElementById("fortinet-detections-data").textContent);
   var IDRAC_ENTRIES = JSON.parse(document.getElementById("idrac-detections-data").textContent);
   var ILO_ENTRIES = JSON.parse(document.getElementById("ilo-detections-data").textContent);
+  var DHCP_ENTRIES = JSON.parse(document.getElementById("dhcp-detections-data").textContent);
 
-  // Normalize all six catalogues into one array. Every original field is
+  // Normalize all seven catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -464,9 +477,15 @@
     d._tool = "Splunk SPL";
     d._component = (d.platform || []).join(" / ");
     return d;
+  })).concat(DHCP_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = (d.platform || []).join(" / ");
+    return d;
   }));
 
   var state = { query: "", tactic: null, severity: null, method: null, dataSource: null, tool: null, component: null, activeId: null };
+  // Filter groups render collapsed by default; expansion state persists across re-renders.
+  var expandedGroups = { tool: false, component: false, dataSource: false, method: false, tactic: false, severity: false };
 
   /* ---------------------------- Theme ---------------------------- */
   var THEME_KEY = "tdl-theme";
@@ -573,15 +592,20 @@
     var results = currentResults();
 
     function section(title, options, activeKey, onClear) {
-      var html = '<div class="filter-group"><h3>' + esc(title);
-      if (activeKey) html += ' <button class="clear-filters" data-clear="' + onClear + '">clear</button>';
-      html += '</h3>';
+      var groupKey = onClear;
+      var isExpanded = !!expandedGroups[groupKey];
+      var html = '<div class="filter-group' + (isExpanded ? ' expanded' : '') + '" data-group="' + groupKey + '">' +
+        '<h3 data-group-toggle="' + groupKey + '">' +
+        '<span class="filter-group-toggle" aria-hidden="true">&#9656;</span>' +
+        '<span class="filter-group-title">' + esc(title) + '</span>';
+      if (activeKey) html += ' <button class="clear-filters filter-group-clear" data-clear="' + onClear + '">clear</button>';
+      html += '</h3><div class="filter-options">';
       options.forEach(function (opt) {
         var isActive = activeKey === opt.key;
         html += '<div class="filter-option' + (isActive ? ' active' : '') + '" data-facet="' + onClear + '" data-value="' + esc(opt.key) + '">' +
           '<span>' + esc(opt.label) + '</span><span class="count">' + opt.count + '</span></div>';
       });
-      html += '</div>';
+      html += '</div></div>';
       return html;
     }
 
@@ -611,13 +635,14 @@
     DATA.forEach(function (d) { if (d._component) componentCounts[d._component] = (componentCounts[d._component] || 0) + 1; });
     var componentOpts = allComponents().map(function (c) { return { key: c, label: c, count: componentCounts[c] || 0 }; });
 
+    // Filter groups (sections) render in alphabetical order by title.
     sidebar.innerHTML =
       section("Catalogue / Tool", toolOpts, state.tool, "tool") +
       section("Component", componentOpts, state.component, "component") +
-      section("MITRE ATT&CK Tactic", tacticOpts, state.tactic, "tactic") +
-      section("Severity", severityOpts, state.severity, "severity") +
+      section("Data Source", dsOpts, state.dataSource, "dataSource") +
       section("Method / Detection Type", methodOpts, state.method, "method") +
-      section("Data Source", dsOpts, state.dataSource, "dataSource");
+      section("MITRE ATT&CK Tactic", tacticOpts, state.tactic, "tactic") +
+      section("Severity", severityOpts, state.severity, "severity");
 
     sidebar.querySelectorAll(".filter-option").forEach(function (el) {
       el.addEventListener("click", function () {
@@ -628,9 +653,17 @@
       });
     });
     sidebar.querySelectorAll(".clear-filters").forEach(function (el) {
-      el.addEventListener("click", function () {
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
         state[el.getAttribute("data-clear")] = null;
         render();
+      });
+    });
+    sidebar.querySelectorAll("[data-group-toggle]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var key = el.getAttribute("data-group-toggle");
+        expandedGroups[key] = !expandedGroups[key];
+        renderSidebar();
       });
     });
   }
@@ -639,7 +672,7 @@
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function idBadgeOf(d) {
     if (d.vmw_id) return d.vmw_id;
-    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X)-[0-9]{3}$/.test(d.id)) return d.id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP)-[0-9]{3}$/.test(d.id)) return d.id;
     return null;
   }
   function cardHtml(d) {
@@ -683,7 +716,7 @@
     var line = DATA.length + " detections (" + SPL_ENTRIES.length + " ESXi/Splunk SPL + " + ARIA_ENTRIES.length +
       " Aria Operations for Logs + " + REDHAT_ENTRIES.length + " Red Hat Splunk SPL + " + FORTINET_ENTRIES.length +
       " Fortinet Splunk SPL + " + IDRAC_ENTRIES.length + " Dell iDRAC Splunk SPL + " + ILO_ENTRIES.length +
-      " HPE iLO Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " HPE iLO Splunk SPL + " + DHCP_ENTRIES.length + " Windows DHCP Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     if (MITRE) {
       line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
     }

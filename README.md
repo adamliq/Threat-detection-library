@@ -13,8 +13,8 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds six catalogues of detection content, spanning two
-different query languages and eleven platform families — combined into
+The repo holds seven catalogues of detection content, spanning two
+different query languages and twelve platform families — combined into
 one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
@@ -25,15 +25,17 @@ one filterable view:
 | Fortinet / Splunk | Splunk SPL | FortiGate, FortiManager, FortiAnalyzer, FortiAuthenticator, FortiClient/EMS, FortiEDR, FortiWeb, FortiMail, FortiProxy, FortiSandbox, plus cross-product (`FNT-X-###`) Security Fabric correlations | 206 |
 | Dell iDRAC / Splunk | Splunk SPL | Dell iDRAC, Lifecycle Controller, Redfish, RACADM, IPMI, Dell OpenManage Enterprise, plus cross-platform (`DELL-X-###`) correlations | 96 |
 | HPE iLO / Splunk | Splunk SPL | HPE iLO, Remote Console, Virtual Media, UEFI/BIOS/Firmware, Redfish, Integrated Management Log, Active Health System, HPE OneView, plus cross-platform (`HPE-X-###`) correlations | 107 |
+| Windows DHCP Server / Splunk | Splunk SPL | Windows DHCP Server core operation, AD authorization, audit-log integrity, DNS/gateway/route/PXE option redirection, failover, rogue-DHCP network telemetry, DHCPv6, dynamic DNS, PowerShell administration, plus cross-platform (`DHCP-X-###`) correlations | 169 |
 
-`index.html` is the **combined library** — all 761 detections from all
-six catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 930 detections from all
+seven catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
-component/method/data-source facets. A detail card renders whichever
-query type applies (a Splunk SPL search block for ESXi, Red Hat,
-Fortinet, iDRAC, and iLO entries, an Aria search query block for Aria
-entries) plus a CLI/API reference, auditd rule set, or risk/maturity/CIM
-metadata where present.
+component/method/data-source facets. Filter groups render in
+alphabetical order and start collapsed — click a group's heading to
+expand it. A detail card renders whichever query type applies (a Splunk
+SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, and DHCP
+entries, an Aria search query block for Aria entries) plus a CLI/API
+reference, auditd rule set, or risk/maturity/CIM metadata where present.
 
 ## Batch 1: VMware ESXi
 
@@ -343,6 +345,53 @@ patterns has dedicated, full-depth coverage; the remaining breadth
 (per-Redfish-endpoint coverage, HPE Compute Ops Management depth,
 exhaustive OneView breadth) is extendable in future batches.
 
+## Windows DHCP Server Threat Detection Library
+
+`data/dhcp-detections.json` is a seventh, independent catalogue: 169
+Splunk SPL detections treating Windows DHCP Server as critical network
+identity/configuration infrastructure, since compromise can redirect
+DNS, gateways, proxy settings, routes, and other network parameters for
+every endpoint that leases from it.
+
+| Namespace | Scope | Detections |
+|---|---|---|
+| `DHCP-###` | Core: service security, scopes, address pools, exclusions, reservations, options (DNS/gateway/route/PXE), policies, filters, lease behavior/starvation, decline/NACK abuse, DHCPv6, process execution, remote admin, registry, database/backup, behavioral, fleet-wide, destructive | 100 |
+| `DHCP-DNS-###` | DNS option redirection + dynamic DNS updates + update credential security | 12 |
+| `DHCP-FO-###` | DHCP failover | 12 |
+| `DHCP-NET-###` | Rogue DHCP, spoofing/MITM, snooping, relay, NAC correlation | 11 |
+| `DHCP-PS-###` | PowerShell administration + netsh dhcp | 10 |
+| `DHCP-AD-###` | Active Directory server authorization | 9 |
+| `DHCP-AUD-###` | DHCP audit-logging tampering / anti-forensics | 9 |
+| `DHCP-X-###` | Cross-platform correlations | 6 |
+
+Every entry follows `schema/dhcp-detection.schema.json`. Per the spec's
+own instruction that ATT&CK does not map cleanly onto every DHCP-specific
+behavior: DHCP option redirection (DNS/gateway/route) uses `T1557`
+(Adversary-in-the-Middle) as the closest fit; rogue DHCP servers use the
+ATT&CK sub-technique built specifically for this, `T1557.003` (DHCP
+Spoofing); and PXE boot-server/file redirection uses `T1542` (Pre-OS
+Boot), consistent with the iDRAC/iLO catalogues' rationale.
+
+The flagship attack chains named explicitly in the spec are all
+implemented as full sequence/correlation detections: **DNS option
+redirection → client resolution shift** (`DHCP-X-002`), **gateway
+poisoning → new next-hop traffic** (`DHCP-X-003`), **PXE option change →
+boot → provisioning activity** (`DHCP-X-004`), **rogue DHCP OFFER →
+client ACK → rogue DNS/gateway use** (`DHCP-X-005`), and **DHCP
+starvation → legitimate client failure** (`DHCP-X-006`), alongside an
+AD-privilege-escalation-to-DHCP-manipulation chain (`DHCP-X-001`). See
+[`docs/dhcp-detection-library.md`](docs/dhcp-detection-library.md) for
+coverage matrices, Priority Detection Packs (Tier 1: 40 detections, 9
+themed packs), an explicit table mapping all fourteen of the spec's named
+priority patterns to their detection IDs, and the detection gap analysis.
+
+This is a deliberately-scoped first release (169 detections against a
+requested 250) for the same reason as the other large-master-prompt
+catalogues in this library — every one of the specification's named
+highest-value patterns has dedicated, full-depth coverage; remaining
+breadth (exhaustive per-vendor switch DHCP-snooping syntax, NAC-vendor-
+specific integration depth) is extendable in future batches.
+
 ## Repository layout
 
 ```
@@ -352,6 +401,7 @@ data/redhat-detections.json    Canonical source of truth for the Red Hat (RHEL/I
 data/fortinet-detections.json  Canonical source of truth for the Fortinet Security Fabric catalogue.
 data/idrac-detections.json     Canonical source of truth for the Dell iDRAC catalogue.
 data/ilo-detections.json       Canonical source of truth for the HPE iLO catalogue.
+data/dhcp-detections.json      Canonical source of truth for the Windows DHCP Server catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -360,15 +410,17 @@ docs/fortinet-logging-requirements.md  Logging architecture, CIM mapping, normal
 docs/fortinet-detection-library.md  Coverage matrices and Priority Detection Packs for the Fortinet catalogue.
 docs/idrac-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Dell iDRAC catalogue.
 docs/ilo-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the HPE iLO catalogue.
+docs/dhcp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows DHCP Server catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
 schema/fortinet-detection.schema.json  JSON Schema for data/fortinet-detections.json entries.
 schema/idrac-detection.schema.json  JSON Schema for data/idrac-detections.json entries.
 schema/ilo-detection.schema.json  JSON Schema for data/ilo-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all six data files.
-index.html                     Generated: template + all six data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all six data/*.json files.
+schema/dhcp-detection.schema.json  JSON Schema for data/dhcp-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all seven data files.
+index.html                     Generated: template + all seven data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all seven data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -444,15 +496,15 @@ The key fields:
 1. Append new detection objects to `data/detections.json` (ESXi/Splunk),
    `data/aria-detections.json` (Aria), `data/redhat-detections.json`
    (RHEL/IdM/AAP/Satellite), `data/fortinet-detections.json` (Fortinet
-   Security Fabric), `data/idrac-detections.json` (Dell iDRAC), or
-   `data/ilo-detections.json` (HPE iLO), validating against the matching
-   schema file in `schema/`. Detection IDs must be unique **across all
-   six files**, not just within one — `tools/build.py` enforces this at
-   build time (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE
-   iLO section above for why this matters with cross-vendor standards
-   like Redfish).
+   Security Fabric), `data/idrac-detections.json` (Dell iDRAC),
+   `data/ilo-detections.json` (HPE iLO), or `data/dhcp-detections.json`
+   (Windows DHCP Server), validating against the matching schema file in
+   `schema/`. Detection IDs must be unique **across all seven files**,
+   not just within one — `tools/build.py` enforces this at build time
+   (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE iLO section
+   above for why this matters with cross-vendor standards like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all six `__..._JSON__`
+   styling), edit `index.template.html` — leave all seven `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -504,4 +556,13 @@ reason, and several anti-forensics-themed entries cite `T1070` rather
 than the more intuitive `T1562` because `T1562` was absent from this
 library's validated MITRE technique cache at authoring time — treat
 that substitution as a reasonable adjacent fit, not a claim that
-`T1562` doesn't exist in ATT&CK generally.
+`T1562` doesn't exist in ATT&CK generally. The Windows DHCP Server
+catalogue's SPL uses `<dhcp_index>`/`<windows_index>`/`<ad_index>`/
+`<network_index>` and similar bracketed placeholders throughout (per the
+spec's own instruction to use logical placeholders rather than invent a
+specific TA's field names) — every placeholder needs mapping to your
+actual DHCP audit-log, Windows Event Log, Active Directory, and network-
+telemetry sourcetypes before use; several entries (`DHCP-NET-###`
+rogue-server detections in particular) explicitly depend on Zeek/
+Suricata/switch-DHCP-snooping telemetry and this library does not claim
+Windows DHCP Server logs alone can reliably detect a rogue DHCP server.
