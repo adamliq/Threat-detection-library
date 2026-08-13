@@ -693,42 +693,64 @@ tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/a
 below. Whenever you touch any data file, re-run `tools/build.py` so the
 combined page picks up the change.
 
-### MITRE ATT&CK coverage data
+### MITRE ATT&CK coverage data — Analytics, Detection Strategies, and Data Sources
 
-`data/mitre-attack-esxi.json` is fetched at runtime by `index.html` (the
-**ATT&CK Coverage** button in the header) — it is *not* baked into the page,
-so it can be refreshed independently of a detection batch. It's built
-straight from MITRE's official STIX corpus
-([mitre/cti](https://github.com/mitre/cti)) and contains, for the ESXi
+The **ATT&CK Coverage** button in the header opens a per-platform coverage
+browser backed by `data/mitre-attack-<platform>.json` files (currently
+`esxi` and `windows`), each fetched independently at runtime — they are
+*not* baked into the page, so any one can be refreshed without a full
+rebuild. Each is built straight from MITRE's official STIX corpus
+([mitre/cti](https://github.com/mitre/cti)) and contains, for that
 platform:
 
-- every non-deprecated **technique** MITRE scopes to `ESXi`, its tactic(s),
-  and whether this library currently has a detection for it
+- every non-deprecated **technique** MITRE scopes to the platform, its
+  tactic(s), and whether this library currently has a detection for it
   (`covered_by_library`) — a live gap list for planning the next batch.
-  Coverage is computed across `data/detections.json` and
-  `data/aria-detections.json`, since an ESXi technique covered only in the
-  Aria catalogue still counts. It does not include `data/redhat-detections.json`
-  (a different platform scope — RHEL/IdM/AAP/Satellite, not ESXi — so an
-  ESXi-platform coverage file isn't the right place to fold it in; a
-  separate Red Hat ATT&CK coverage file would be the natural next step).
-- every official MITRE **Detection Analytic** scoped to `ESXi` (MITRE's
-  newer Analytics/Detection Strategy model, distinct from and complementary
-  to this library's own detections), with its log sources, mutable
-  elements, and parent technique(s)
+  For `esxi`, coverage is computed across `data/detections.json` and
+  `data/aria-detections.json`; for `windows`, across
+  `data/ad-detections.json`, `data/rdp-detections.json`, and
+  `data/dhcp-detections.json` — the three Windows-scoped catalogues.
+- every official MITRE **Detection Analytic** scoped to the platform
+  (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
+  model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
+  `x-mitre-data-component` — distinct from and complementary to this
+  library's own detections), each resolved to its parent **Detection
+  Strategy** and the **Data Source**/Data Component log sources it
+  depends on.
 
-Because it's fetched with `fetch()`, the coverage button only works when the
-page is served over http(s) (e.g. GitHub Pages, `python3 -m http.server`) —
-browsers block `fetch` of local files, so it degrades to a toast message
-when opened via `file://`, same as the rest of the page's data does not.
+In the modal, click a technique row that shows an analytic count to expand
+it and see the actual Analytic ID/name, its Detection Strategy, description,
+and the specific log sources (with data component) it's grounded in — not
+just a bare count. When more than one platform's data file has loaded, a
+small tab switcher at the top of the modal lets you flip between them
+without closing it; the header's stats line and the coverage button's
+tooltip report each loaded platform's `covered/total` count.
 
-Regenerate it after a new MITRE ATT&CK release, or after adding detections
-to either catalogue, with:
+Because these are fetched with `fetch()`, the coverage button only works
+when the page is served over http(s) (e.g. GitHub Pages,
+`python3 -m http.server`) — browsers block `fetch` of local files, so it
+degrades to a toast message when opened via `file://`, same as the rest of
+the page's data does.
+
+Regenerate a platform's file after a new MITRE ATT&CK release, or after
+adding detections to a catalogue scoped to that platform, with:
 
 ```bash
 python3 tools/fetch_mitre_platform.py --platform ESXi
 # cross-references data/detections.json + data/aria-detections.json by default;
 # pass --detections explicitly (repeatable) to override which file(s) to check.
+
+python3 tools/fetch_mitre_platform.py --platform Windows \
+  --detections data/ad-detections.json \
+  --detections data/rdp-detections.json \
+  --detections data/dhcp-detections.json
 ```
+
+To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
+script with `--platform Linux --detections data/redhat-detections.json`,
+then add `{ id: "Linux", label: "Linux", file: "data/mitre-attack-linux.json" }`
+to the `COVERAGE_PLATFORMS` array near the top of the MITRE coverage
+section in `index.template.html` and rebuild.
 
 ## Detection schema
 
