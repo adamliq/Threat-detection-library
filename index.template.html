@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, and Windows DHCP Server Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, and VMware Cloud Foundation Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -426,7 +426,7 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, and Windows DHCP Server Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, and VMware Cloud Foundation Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -437,6 +437,8 @@
 <script type="application/json" id="idrac-detections-data">__IDRAC_DETECTIONS_JSON__</script>
 <script type="application/json" id="ilo-detections-data">__ILO_DETECTIONS_JSON__</script>
 <script type="application/json" id="dhcp-detections-data">__DHCP_DETECTIONS_JSON__</script>
+<script type="application/json" id="rdp-detections-data">__RDP_DETECTIONS_JSON__</script>
+<script type="application/json" id="vcf-detections-data">__VCF_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -448,8 +450,10 @@
   var IDRAC_ENTRIES = JSON.parse(document.getElementById("idrac-detections-data").textContent);
   var ILO_ENTRIES = JSON.parse(document.getElementById("ilo-detections-data").textContent);
   var DHCP_ENTRIES = JSON.parse(document.getElementById("dhcp-detections-data").textContent);
+  var RDP_ENTRIES = JSON.parse(document.getElementById("rdp-detections-data").textContent);
+  var VCF_ENTRIES = JSON.parse(document.getElementById("vcf-detections-data").textContent);
 
-  // Normalize all seven catalogues into one array. Every original field is
+  // Normalize all nine catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -480,6 +484,14 @@
   })).concat(DHCP_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = (d.platform || []).join(" / ");
+    return d;
+  })).concat(RDP_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = (d.platform || []).join(" / ");
+    return d;
+  })).concat(VCF_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = (d.vcf_product || []).join(" / ");
     return d;
   }));
 
@@ -672,7 +684,7 @@
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function idBadgeOf(d) {
     if (d.vmw_id) return d.vmw_id;
-    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP)-[0-9]{3}$/.test(d.id)) return d.id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF)-[0-9]{3}$/.test(d.id)) return d.id;
     return null;
   }
   function cardHtml(d) {
@@ -716,7 +728,9 @@
     var line = DATA.length + " detections (" + SPL_ENTRIES.length + " ESXi/Splunk SPL + " + ARIA_ENTRIES.length +
       " Aria Operations for Logs + " + REDHAT_ENTRIES.length + " Red Hat Splunk SPL + " + FORTINET_ENTRIES.length +
       " Fortinet Splunk SPL + " + IDRAC_ENTRIES.length + " Dell iDRAC Splunk SPL + " + ILO_ENTRIES.length +
-      " HPE iLO Splunk SPL + " + DHCP_ENTRIES.length + " Windows DHCP Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " HPE iLO Splunk SPL + " + DHCP_ENTRIES.length + " Windows DHCP Splunk SPL + " + RDP_ENTRIES.length +
+      " Windows RDP Splunk SPL + " + VCF_ENTRIES.length +
+      " VMware Cloud Foundation Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     if (MITRE) {
       line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
     }
