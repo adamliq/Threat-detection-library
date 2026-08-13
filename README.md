@@ -13,8 +13,8 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds eight catalogues of detection content, spanning two
-different query languages and thirteen platform families — combined
+The repo holds nine catalogues of detection content, spanning two
+different query languages and fourteen platform families — combined
 into one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
@@ -27,15 +27,16 @@ into one filterable view:
 | HPE iLO / Splunk | Splunk SPL | HPE iLO, Remote Console, Virtual Media, UEFI/BIOS/Firmware, Redfish, Integrated Management Log, Active Health System, HPE OneView, plus cross-platform (`HPE-X-###`) correlations | 107 |
 | Windows DHCP Server / Splunk | Splunk SPL | Windows DHCP Server core operation, AD authorization, audit-log integrity, DNS/gateway/route/PXE option redirection, failover, rogue-DHCP network telemetry, DHCPv6, dynamic DNS, PowerShell administration, plus cross-platform (`DHCP-X-###`) correlations | 169 |
 | Windows RDP / Splunk | Splunk SPL | RDP authentication/brute-force, lateral movement, RD Gateway, session lifecycle/hijacking, credential-protection configuration, network exposure/tunneling, post-RDP process-execution correlation, plus cross-platform (`RDP-X-###`) correlations | 94 |
+| VMware Cloud Foundation / Splunk | Splunk SPL | SDDC Manager, NSX, vSAN encryption, VCF Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, Tanzu/Kubernetes, plus cross-platform (`VCF-X-###`) correlations | 162 |
 
-`index.html` is the **combined library** — all 1039 detections from all
-eight catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 1201 detections from all
+nine catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
-SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, and RDP
-entries, an Aria search query block for Aria entries) plus a CLI/API
+SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, and
+VCF entries, an Aria search query block for Aria entries) plus a CLI/API
 reference, auditd rule set, or risk/maturity/CIM metadata where present.
 
 ## Batch 1: VMware ESXi
@@ -444,6 +445,63 @@ highest-value patterns has dedicated coverage; remaining breadth
 (exhaustive RD Web/Broker/RemoteApp sub-scenarios, printer/smart-card/
 audio redirection depth) is extendable in future batches.
 
+## VMware Cloud Foundation Threat Detection Library
+
+`data/vcf-detections.json` is a ninth, independent catalogue: 162
+Splunk SPL detections covering the VCF-specific management and
+automation planes — SDDC Manager, NSX, vSAN encryption/KMS, VCF
+Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, and
+Tanzu/Kubernetes — deliberately **not** re-covering vCenter/ESXi
+hypervisor-layer detections already provided by `data/detections.json`
+and the Aria growth batch (see the scope note in
+[`docs/vcf-detection-library.md`](docs/vcf-detection-library.md)).
+
+| Namespace | Scope | Detections |
+|---|---|---|
+| `NSX-###` | Authentication/RBAC, Distributed Firewall, Gateway Firewall, NAT, routing, segments, Edge, IDS/IPS, security groups, logging | 35 |
+| `VCF-###` | SDDC Manager authentication/administration, workload domains, hosts, lifecycle management, software supply chain | 25 |
+| `SALT-###` | Salt Master/Minion authentication, key management, remote execution, state management, reactor, trust | 20 |
+| `AUTO-###` | VCF Automation credentials, blueprints, orchestration, deployments, governance, extensibility | 15 |
+| `VCF-X-###` | Cross-platform correlations | 15 |
+| `VSAN-###` | vSAN encryption, KMS, disk groups, storage policy, cluster, file services, iSCSI | 12 |
+| `OPS-###` | VCF Operations authentication, alerting, adapters, RBAC | 10 |
+| `LOGS-###` | VCF Operations for Logs ingestion, retention, forwarding, content packs | 10 |
+| `HCX-###` | Site pairing, network extension, migration/exfiltration | 10 |
+| `K8S-###` | Tanzu Supervisor/guest clusters: RBAC, workload security, secrets, admission control | 10 |
+
+Every entry follows `schema/vcf-detection.schema.json`, which uses a
+`vcf_product` field (not `platform`) to match the specification's own
+terminology. Every MITRE technique cited was already present in the
+validated technique cache except for "impaired security control"
+detections, which cite `T1070` (Indicator Removal) rather than the
+uncached `T1562` (Impair Defenses) — the same substitution used
+throughout this library.
+
+All six of the specification's named attack-path chains are implemented
+as full cross-platform correlations: the **ransomware kill-chain**
+(`VCF-X-001`), **management-plane-compromise chain** (`VCF-X-002`),
+**NSX-segmentation-bypass chain** (`VCF-X-003`), **automation-compromise
+chain** (`AUTO-015`, cross-referenced as `VCF-X-004`), and
+**Salt-compromise chain** (`SALT-018`, cross-referenced as `VCF-X-005`),
+plus additional named chains for **KMS compromise → encryption impact**
+(`VCF-X-007`), **software supply chain** (`VCF-X-008`), **HCX-enabled
+exfiltration** (`VCF-X-009`), **anti-forensics/logging impairment**
+(`VCF-X-010`), and **fleet-wide simultaneous-anomaly correlation**
+(`VCF-X-013`). See
+[`docs/vcf-detection-library.md`](docs/vcf-detection-library.md) for
+coverage matrices, Priority Detection Packs (Tier 1: 35 detections, 12
+themed packs), the full VCF Attack-Path Matrix, and the detection gap
+analysis explaining exactly what this catalogue depends on the base
+ESXi/Aria catalogues to provide.
+
+This is a deliberately-scoped release (162 detections against a
+requested 500, and deliberately omitting the `VC-###`/`ESXI-###`
+namespaces named in the specification) for the same reason as the other
+large-master-prompt catalogues in this library — building genuinely new,
+MITRE-validated detections in the areas not already covered, rather than
+padding the count with restatements of the existing vCenter/ESXi
+catalogues.
+
 ## Repository layout
 
 ```
@@ -455,6 +513,7 @@ data/idrac-detections.json     Canonical source of truth for the Dell iDRAC cata
 data/ilo-detections.json       Canonical source of truth for the HPE iLO catalogue.
 data/dhcp-detections.json      Canonical source of truth for the Windows DHCP Server catalogue.
 data/rdp-detections.json       Canonical source of truth for the Windows RDP catalogue.
+data/vcf-detections.json       Canonical source of truth for the VMware Cloud Foundation catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -465,6 +524,7 @@ docs/idrac-detection-library.md  Coverage matrices, Priority Detection Packs, an
 docs/ilo-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the HPE iLO catalogue.
 docs/dhcp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows DHCP Server catalogue.
 docs/rdp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows RDP catalogue.
+docs/vcf-detection-library.md  Coverage matrices, Priority Detection Packs, VCF Attack-Path Matrix, and gap analysis for the VMware Cloud Foundation catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -473,9 +533,10 @@ schema/idrac-detection.schema.json  JSON Schema for data/idrac-detections.json e
 schema/ilo-detection.schema.json  JSON Schema for data/ilo-detections.json entries.
 schema/dhcp-detection.schema.json  JSON Schema for data/dhcp-detections.json entries.
 schema/rdp-detection.schema.json  JSON Schema for data/rdp-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all eight data files.
-index.html                     Generated: template + all eight data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all eight data/*.json files.
+schema/vcf-detection.schema.json  JSON Schema for data/vcf-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all nine data files.
+index.html                     Generated: template + all nine data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all nine data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -553,14 +614,15 @@ The key fields:
    (RHEL/IdM/AAP/Satellite), `data/fortinet-detections.json` (Fortinet
    Security Fabric), `data/idrac-detections.json` (Dell iDRAC),
    `data/ilo-detections.json` (HPE iLO), `data/dhcp-detections.json`
-   (Windows DHCP Server), or `data/rdp-detections.json` (Windows RDP),
-   validating against the matching schema file in `schema/`. Detection
-   IDs must be unique **across all eight files**, not just within one —
+   (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP), or
+   `data/vcf-detections.json` (VMware Cloud Foundation), validating
+   against the matching schema file in `schema/`. Detection IDs must be
+   unique **across all nine files**, not just within one —
    `tools/build.py` enforces this at build time (see the `HREDFISH-###`
    vs. `REDFISH-###` note in the HPE iLO section above for why this
    matters with cross-vendor standards like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all eight `__..._JSON__`
+   styling), edit `index.template.html` — leave all nine `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -630,4 +692,19 @@ alone can detect session hijacking, RD Gateway abuse, tunneling, or any
 of the `RDP-X-###` cross-platform chains — see each entry's
 `telemetry_requirement` and `data_sources` fields, and
 `docs/rdp-detection-library.md` §10, before assuming a given detection
-will fire from your actual log collection.
+will fire from your actual log collection. The VMware Cloud Foundation
+catalogue's SPL uses `<vcf_index>` plus bracketed sourcetype
+placeholders (`<sddc_audit_sourcetype>`, `<nsx_audit_sourcetype>`,
+`<salt_master_sourcetype>`, `<k8s_audit_sourcetype>`, etc.) throughout —
+every placeholder needs mapping to your actual SDDC Manager, NSX
+Manager, vCenter, Salt Master, VCF Automation, VCF Operations for Logs,
+and Kubernetes API-server audit-log sourcetypes before use. This
+catalogue deliberately does not duplicate the base ESXi/Aria
+catalogues' vCenter/ESXi coverage (see the scope note in
+`docs/vcf-detection-library.md`), and several detections — the
+segmentation-intent-matrix flow correlation (`NSX-031`, `VCF-X-003`),
+sensitive-VM/namespace tag lookups, and the `VCF-X-###` multi-platform
+correlations generally — depend on maintained reference lookups this
+library cannot ship for you; see `docs/vcf-detection-library.md` §10 for
+the full list of what each correlation assumes is in place before it can
+fire as designed.
