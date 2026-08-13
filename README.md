@@ -13,8 +13,8 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds ten catalogues of detection content, spanning two
-different query languages and fifteen platform families — combined
+The repo holds eleven catalogues of detection content, spanning two
+different query languages and sixteen platform families — combined
 into one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
@@ -29,17 +29,18 @@ into one filterable view:
 | Windows RDP / Splunk | Splunk SPL | RDP authentication/brute-force, lateral movement, RD Gateway, session lifecycle/hijacking, credential-protection configuration, network exposure/tunneling, post-RDP process-execution correlation, plus cross-platform (`RDP-X-###`) correlations | 94 |
 | VMware Cloud Foundation / Splunk | Splunk SPL | SDDC Manager, NSX, vSAN encryption, VCF Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, Tanzu/Kubernetes, plus cross-platform (`VCF-X-###`) correlations | 162 |
 | Splunk Platform / Splunk | Splunk SPL | Attacks against, abuse of, or suspicious administrative activity within **Splunk itself** — Splunk Cloud, Splunk Enterprise, Enterprise Security, SOAR, forwarders, and the management tier — plus cross-component (`SPL-X-###`) attack-path correlations | 337 |
+| Active Directory / Splunk | Splunk SPL | Active Directory Domain Services as Tier-0 identity infrastructure — Kerberos, NTLM, LDAP, Group Policy, trusts/SIDHistory, privileged groups/AdminSDHolder, delegation/RBCD, AD CS, LAPS/gMSA, domain controller integrity, credential access, plus cross-platform (`AD-X-###`) identity-correlation chains | 332 |
 
-`index.html` is the **combined library** — all 1538 detections from all
-ten catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 1870 detections from all
+eleven catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
 SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, VCF,
-and Splunk Platform entries, an Aria search query block for Aria entries)
-plus a CLI/API reference, auditd rule set, or risk/maturity/CIM metadata
-where present.
+Splunk Platform, and Active Directory entries, an Aria search query block
+for Aria entries) plus a CLI/API reference, auditd rule set, or risk/
+maturity/CIM metadata where present.
 
 ## Batch 1: VMware ESXi
 
@@ -576,6 +577,73 @@ MITRE-validated coverage; padding toward 500 would have meant inventing
 Splunk internal indexes, REST endpoints, or configuration files that
 don't exist.
 
+## Active Directory Threat Detection Library
+
+`data/ad-detections.json` is an eleventh, independent catalogue: 332
+Splunk SPL detections covering attacks against, abuse of, or suspicious
+administrative activity within Active Directory Domain Services, treated
+throughout as Tier-0 identity infrastructure — Kerberos, NTLM, LDAP,
+Group Policy, domain/forest trusts and SIDHistory, privileged groups and
+AdminSDHolder, delegation (unconstrained/constrained/RBCD), AD CS
+certificate abuse, LAPS/gMSA managed-password access, and the domain
+controllers themselves.
+
+| Namespace | Scope | Detections |
+|---|---|---|
+| `AD-KRB-###` | Kerberos: TGT/service-ticket anomalies, Kerberoasting, AS-REP roasting, Golden/Silver Ticket, Pass-the-Ticket, Overpass-the-Hash, krbtgt integrity | 35 |
+| `AD-AUTH-###` | Authentication: failed logons, password spray, lockouts, privileged-account logons, DC interactive logon | 30 |
+| `AD-DC-###` | Domain controller integrity: promotion/demotion, DSRM, NTDS/LSASS access, service/process tampering, backup/restore, logging impairment | 30 |
+| `AD-GPO-###` | Group Policy: CRUD, link scope, security filtering, SYSVOL/GPP tampering, fleet-wide chains | 25 |
+| `AD-USER-###` | User accounts: creation, enable/disable, deletion, password reset, sensitive UAC flag changes | 20 |
+| `AD-GRP-###` | Privileged groups: Domain/Enterprise/Schema Admins, Operators groups, nested-group abuse, AdminSDHolder/SDProp | 20 |
+| `AD-ACL-###` | ACL/ACE and object-owner abuse: GenericAll/WriteDACL/WriteOwner/ResetPassword, DCSync-rights grant | 20 |
+| `AD-CRED-###` | Credential access: SAM/SECURITY/SYSTEM hive dumping, LSASS memory access, DPAPI theft, ticket export | 20 |
+| `AD-X-###` | Cross-platform identity correlation chains (VPN, RDP, vCenter, backup, iLO/iDRAC, DHCP, Fortinet, cloud identity) | 20 |
+| `AD-NTLM-###` | NTLM: downgrade detection, relay indicators, machine-account abuse, pass-the-hash | 15 |
+| `AD-COMP-###` | Computer accounts: MachineAccountQuota abuse, domain join/leave, RBCD staging | 15 |
+| `AD-REPL-###` | Replication: DCSync (rights-use, kept separate from rights-grant), DCShadow indicators, FSMO | 15 |
+| `AD-DELEG-###` | Kerberos delegation: unconstrained, constrained, resource-based constrained delegation, S4U2Self/S4U2Proxy chains | 15 |
+| `AD-LDAP-###` | LDAP: unsigned binds, channel binding, anonymous binds, BloodHound-pattern enumeration | 15 |
+| `AD-PERSIST-###` | Directory-level persistence: SSP/AP registration, WMI subscriptions, Shadow Credentials, AD CS abuse | 15 |
+| `AD-TRUST-###` | Domain/forest trusts and SIDHistory: creation, SID-filtering weakening, cross-trust privileged authentication | 12 |
+| `AD-LAPS-###` | LAPS and gMSA managed-password access: unauthorized reads, bulk reads, retrieval-delegation grants | 10 |
+
+Every entry follows `schema/ad-detection.schema.json`, honors the
+specification's explicit detection-limitation rules (4769 is never
+treated as proof of Kerberoasting alone; Golden Ticket/Silver
+Ticket/DCShadow detections are explicitly marked indirect/best-effort via
+an `attack_mapping_note` field; DCSync rights-grant and rights-use are
+tracked as two separate detections and correlated, never conflated), and
+never surfaces credential material (passwords, hashes, ticket blobs,
+LAPS/gMSA secrets) in any SPL output. As with every other catalogue in
+this library, "impaired security control" detections cite `T1070`
+(Indicator Removal) rather than the uncached `T1562` (Impair Defenses).
+
+The full Attack-Path Matrix from the specification is implemented — User
+→ Privileged Group, User → ACL Abuse, User → DCSync, User → RBCD,
+MachineAccountQuota → RBCD, User → SPN → Kerberoast, GPO → Fleet,
+AdminSDHolder → Persistent Privilege, Trust → Cross-Forest Privilege, AD
+CS → Certificate Privilege, LAPS → Local Admin, gMSA → Service Account,
+vCenter/Backup → NTDS Offline Access, VPN → Privileged AD, RDP → AD
+Escalation, plus a ransomware-against-identity chain, a DC-destruction
+chain, and virtualized-DC correlations — as `AD-X-###` cross-platform
+correlations and same-domain chains embedded directly in their natural
+namespace. See
+[`docs/ad-detection-library.md`](docs/ad-detection-library.md) for
+coverage matrices, Priority Detection Packs (Tier 1: 82 detections, 11
+named themed packs), the complete Attack-Path Matrix with telemetry
+requirements and blind spots, and the detection gap analysis covering
+exactly which findings require Directory Service Access auditing,
+Sysmon/EDR, CA-specific auditing, or integration with the companion
+VMware Aria/iLO/iDRAC catalogues.
+
+This is a deliberately-scoped release (332 detections against a
+requested 500+) for the same reason as the other large-master-prompt
+catalogues in this library — every one of the specification's 17
+requested namespaces and every named attack-path chain has dedicated,
+MITRE-validated coverage; padding toward 500 would have meant inventing
+Windows Event IDs or AD schema attributes that don't exist.
+
 ## Repository layout
 
 ```
@@ -589,6 +657,7 @@ data/dhcp-detections.json      Canonical source of truth for the Windows DHCP Se
 data/rdp-detections.json       Canonical source of truth for the Windows RDP catalogue.
 data/vcf-detections.json       Canonical source of truth for the VMware Cloud Foundation catalogue.
 data/splunk-detections.json    Canonical source of truth for the Splunk Platform (self-protection) catalogue.
+data/ad-detections.json        Canonical source of truth for the Active Directory catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -601,6 +670,7 @@ docs/dhcp-detection-library.md  Coverage matrices, Priority Detection Packs, and
 docs/rdp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows RDP catalogue.
 docs/vcf-detection-library.md  Coverage matrices, Priority Detection Packs, VCF Attack-Path Matrix, and gap analysis for the VMware Cloud Foundation catalogue.
 docs/splunk-platform-detection-library.md  Coverage matrices, Cloud-vs-Enterprise matrix, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Splunk Platform catalogue.
+docs/ad-detection-library.md  Coverage matrices, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Active Directory catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -611,9 +681,10 @@ schema/dhcp-detection.schema.json  JSON Schema for data/dhcp-detections.json ent
 schema/rdp-detection.schema.json  JSON Schema for data/rdp-detections.json entries.
 schema/vcf-detection.schema.json  JSON Schema for data/vcf-detections.json entries.
 schema/splunk-platform-detection.schema.json  JSON Schema for data/splunk-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all ten data files.
-index.html                     Generated: template + all ten data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all ten data/*.json files.
+schema/ad-detection.schema.json  JSON Schema for data/ad-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all eleven data files.
+index.html                     Generated: template + all eleven data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all eleven data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -692,15 +763,16 @@ The key fields:
    Security Fabric), `data/idrac-detections.json` (Dell iDRAC),
    `data/ilo-detections.json` (HPE iLO), `data/dhcp-detections.json`
    (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP),
-   `data/vcf-detections.json` (VMware Cloud Foundation), or
-   `data/splunk-detections.json` (Splunk Platform self-protection),
-   validating against the matching schema file in `schema/`. Detection
-   IDs must be unique **across all ten files**, not just within one —
+   `data/vcf-detections.json` (VMware Cloud Foundation),
+   `data/splunk-detections.json` (Splunk Platform self-protection), or
+   `data/ad-detections.json` (Active Directory), validating against the
+   matching schema file in `schema/`. Detection IDs must be unique
+   **across all eleven files**, not just within one —
    `tools/build.py` enforces this at build time (see the `HREDFISH-###`
    vs. `REDFISH-###` note in the HPE iLO section above for why this
    matters with cross-vendor standards like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all ten `__..._JSON__`
+   styling), edit `index.template.html` — leave all eleven `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -807,3 +879,41 @@ Several `Ingest Processor`/`Edge Processor`/`SOAR` detections
 sourcetype placeholders and explicitly flag that the exact audit-event
 schema is product/version-dependent and should be validated against your
 specific deployment before relying on the literal field names shown.
+The Active Directory catalogue's SPL relies primarily on the DC Security
+event log (4624/4625/4662/4720-4776/5136/5137/5141, etc.), but a
+substantial share of detections require Directory Service Access
+auditing specifically (a distinct Advanced Audit Policy subcategory,
+not on by default) — every entry that needs it says so via its
+`telemetry_requirement`/`tuning_guidance` fields, and
+`docs/ad-detection-library.md` §11 gives the full gap analysis. A number
+of entries additionally depend on telemetry this repository cannot
+assume is present: Sysmon/EDR for LSASS-access and process-creation
+detections (`AD-DC-006/007/008/020/021`, all of `AD-CRED-###`'s
+tool-based entries), Certification Authority role-specific auditing for
+`AD-PERSIST-007/009/014`, SYSVOL file-system SACL auditing for the
+GPO-content-tampering entries, and the LDAP Interface Events diagnostic
+logging level for all of `AD-LDAP-###`. The `AD-X-###` cross-platform
+correlations are explicitly illustrative — they reference companion
+catalogues' log sources (VMware vCenter events for `AD-X-003/016`, HPE
+iLO/Dell iDRAC events for `AD-X-005`, Fortinet/VPN/backup-platform logs
+for the remainder) with vendor-specific field names and sourcetypes that
+will need mapping to your actual deployment; several (`AD-X-003/004/005`)
+depend on maintained VM-to-DC-hostname or physical-host-to-DC inventory
+lookups this library does not ship. Golden Ticket, Silver Ticket, and
+DCShadow detections (`AD-KRB-016` through `020`, `AD-REPL-005/006/015`)
+are explicitly marked indirect/best-effort in their `attack_mapping_note`
+field per the specification's own instruction not to claim direct
+single-event detection of these techniques — Microsoft Defender for
+Identity or equivalent network-level Kerberos/replication visibility is
+the more reliable control where available, and this library says so
+rather than overclaiming. As with the HPE iLO catalogue, several
+"impaired security control" entries cite `T1070` rather than the more
+intuitive `T1562` because `T1562` and its sub-techniques are absent from
+this library's validated MITRE technique cache — the same documented
+substitution used throughout this repository. Finally, none of this
+catalogue's lookups (`tier0_privileged_accounts.csv`,
+`domain_controllers.csv`, `sidhistory_inventory.csv`, and dozens more
+referenced by name in `tuning_guidance` fields) are shipped as actual
+files — populate them from your own asset inventory or identity-
+governance platform before relying on the detections that depend on them
+(see `docs/ad-detection-library.md` §12 for the full list).

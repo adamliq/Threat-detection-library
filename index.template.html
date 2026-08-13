@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, and Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection) Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -227,7 +227,8 @@
   .card:hover { border-color: var(--accent); }
   .card:active { transform: scale(0.997); }
   .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .card-title { font-size: 14.5px; font-weight: 650; line-height: 1.35; }
+  .card-top > div { min-width: 0; }
+  .card-title { font-size: 14.5px; font-weight: 650; line-height: 1.35; overflow-wrap: break-word; word-break: break-word; }
   .badge {
     display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
     text-transform: uppercase; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; white-space: nowrap;
@@ -426,7 +427,7 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, and Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection) Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -440,6 +441,7 @@
 <script type="application/json" id="rdp-detections-data">__RDP_DETECTIONS_JSON__</script>
 <script type="application/json" id="vcf-detections-data">__VCF_DETECTIONS_JSON__</script>
 <script type="application/json" id="splunk-detections-data">__SPLUNK_DETECTIONS_JSON__</script>
+<script type="application/json" id="ad-detections-data">__AD_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -454,8 +456,9 @@
   var RDP_ENTRIES = JSON.parse(document.getElementById("rdp-detections-data").textContent);
   var VCF_ENTRIES = JSON.parse(document.getElementById("vcf-detections-data").textContent);
   var SPLUNK_ENTRIES = JSON.parse(document.getElementById("splunk-detections-data").textContent);
+  var AD_ENTRIES = JSON.parse(document.getElementById("ad-detections-data").textContent);
 
-  // Normalize all ten catalogues into one array. Every original field is
+  // Normalize all eleven catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -498,6 +501,10 @@
   })).concat(SPLUNK_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = (d.platform || []).join(" / ");
+    return d;
+  })).concat(AD_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = d.component || "";
     return d;
   }));
 
@@ -690,7 +697,7 @@
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function idBadgeOf(d) {
     if (d.vmw_id) return d.vmw_id;
-    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X)-[0-9]{3}$/.test(d.id)) return d.id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X|AD-AUTH|AD-KRB|AD-NTLM|AD-USER|AD-GRP|AD-COMP|AD-ACL|AD-GPO|AD-TRUST|AD-REPL|AD-DC|AD-DELEG|AD-LDAP|AD-LAPS|AD-PERSIST|AD-CRED|AD-X)-[0-9]{3}$/.test(d.id)) return d.id;
     return null;
   }
   function cardHtml(d) {
@@ -737,7 +744,8 @@
       " HPE iLO Splunk SPL + " + DHCP_ENTRIES.length + " Windows DHCP Splunk SPL + " + RDP_ENTRIES.length +
       " Windows RDP Splunk SPL + " + VCF_ENTRIES.length +
       " VMware Cloud Foundation Splunk SPL + " + SPLUNK_ENTRIES.length +
-      " Splunk Platform Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " Splunk Platform Splunk SPL + " + AD_ENTRIES.length +
+      " Active Directory Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     if (MITRE) {
       line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
     }
