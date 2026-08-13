@@ -20,7 +20,7 @@ into one filterable view:
 | Catalogue | Query language | Scope | Detections |
 |---|---|---|---|
 | ESXi / Splunk | Splunk SPL | VMware ESXi hypervisor only | 31 |
-| VMware Aria Operations for Logs | Aria search expressions | The whole vSphere stack (vCenter, SSO, ESXi, storage, networking, cluster) | 150 |
+| VMware Aria Operations for Logs | Aria search expressions | The whole vSphere stack (vCenter, SSO, ESXi, storage, networking, cluster) | 165 |
 | Red Hat / Splunk | Splunk SPL | RHEL, Red Hat IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite, plus cross-platform (`RH-X-###`) correlations | 171 |
 | Fortinet / Splunk | Splunk SPL | FortiGate, FortiManager, FortiAnalyzer, FortiAuthenticator, FortiClient/EMS, FortiEDR, FortiWeb, FortiMail, FortiProxy, FortiSandbox, plus cross-product (`FNT-X-###`) Security Fabric correlations | 206 |
 | Dell iDRAC / Splunk | Splunk SPL | Dell iDRAC, Lifecycle Controller, Redfish, RACADM, IPMI, Dell OpenManage Enterprise, plus cross-platform (`DELL-X-###`) correlations | 96 |
@@ -28,7 +28,7 @@ into one filterable view:
 | Windows DHCP Server / Splunk | Splunk SPL | Windows DHCP Server core operation, AD authorization, audit-log integrity, DNS/gateway/route/PXE option redirection, failover, rogue-DHCP network telemetry, DHCPv6, dynamic DNS, PowerShell administration, plus cross-platform (`DHCP-X-###`) correlations | 169 |
 | Windows RDP / Splunk | Splunk SPL | RDP authentication/brute-force, lateral movement, RD Gateway, session lifecycle/hijacking, credential-protection configuration, network exposure/tunneling, post-RDP process-execution correlation, plus cross-platform (`RDP-X-###`) correlations | 94 |
 
-`index.html` is the **combined library** — all 1024 detections from all
+`index.html` is the **combined library** — all 1039 detections from all
 eight catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
@@ -102,11 +102,16 @@ to `T1685`/`T1686` accordingly.
 
 ## VMware Aria Operations for Logs Catalogue
 
-`data/aria-detections.json` is a second, independent catalogue: 150
-detections (`VMW-001`–`VMW-150`) spanning the full vSphere stack —
+`data/aria-detections.json` is a second, independent catalogue: 165
+detections (`VMW-001`–`VMW-165`) spanning the full vSphere stack —
 vCenter/SSO identity and access, ESXi host security configuration,
 virtual networking, storage/datastores, cluster HA/DRS, the vCenter
-control plane, content libraries, and guest operations — written as
+control plane, content libraries, guest operations, and (in the
+`VMW-151`–`VMW-165` growth batch) the vCenter Server Appliance
+OS/VAMI layer, vCenter High Availability, Enhanced Linked Mode,
+vSphere Trust Authority, per-VM encryption, vSAN File Services,
+vSphere Lifecycle Manager, Network I/O Control, and vSphere
+Replication — written as
 **VMware Aria Operations for Logs search expressions** rather than
 Splunk SPL, since Aria is a different query language with its own
 field-extraction model per content pack. These detections live only in

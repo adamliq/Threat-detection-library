@@ -1830,6 +1830,186 @@ For count/burst detections, use the Aria UI's time range, grouping, aggregation,
 ("RemoveSnapshot" OR "snapshot deleted" OR "DestroyVM" OR "powered off" OR "datastore unmounted" OR "VMDK" AND "deleted")
 ```
 - **Detection logic / tuning:** Aggregate distinct objects/actions; strongest when multiple categories occur for same actor/source in 10 minutes.
+
+### VMW-151 - VCSA Bash shell enabled
+- **Component:** vCenter Appliance
+- **Severity:** High
+- **MITRE tactic:** Defense Evasion
+- **MITRE technique:** T1554 Compromise Host Software Binary
+- **Aria search query:**
+
+```text
+("BashShellAdmin" OR "bash shell") AND ("enabled" OR "access granted")
+```
+- **Detection logic / tuning:** The VCSA Bash shell is disabled by default and grants OS-level root access to the vCenter appliance itself, not just vCenter's application layer; alert on every enablement outside a documented support/troubleshooting window.
+
+### VMW-152 - VCSA root SSH login
+- **Component:** vCenter Appliance
+- **Severity:** Critical
+- **MITRE tactic:** Initial Access
+- **MITRE technique:** T1078.001 Default Accounts
+- **Aria search query:**
+
+```text
+("sshd" AND "root" AND "Accepted password") OR ("VAMI" AND "root login")
+```
+- **Detection logic / tuning:** Root SSH to the vCenter appliance OS bypasses vSphere RBAC entirely; correlate with VMW-151 since Bash shell enablement is normally the prerequisite step.
+
+### VMW-153 - VAMI (appliance management interface) privileged configuration change
+- **Component:** vCenter Appliance
+- **Severity:** High
+- **MITRE tactic:** Persistence
+- **MITRE technique:** T1098 Account Manipulation
+- **Aria search query:**
+
+```text
+"VAMI" AND ("network configuration changed" OR "NTP configuration changed" OR "root password changed" OR "backup schedule changed")
+```
+- **Detection logic / tuning:** VAMI (port 5480) manages the appliance OS independent of vSphere Client; a root password or backup-schedule change here can persist through a vCenter application-layer compromise cleanup.
+
+### VMW-154 - vCenter High Availability (VCHA) failover triggered
+- **Component:** vCenter Appliance
+- **Severity:** Medium
+- **MITRE tactic:** Impact
+- **MITRE technique:** T1499.004 Application or System Exploitation
+- **Aria search query:**
+
+```text
+"VCHA" AND ("failover" OR "state transition") AND ("Passive" OR "Active")
+```
+- **Detection logic / tuning:** Legitimate during planned maintenance/patching; unticketed failovers may indicate the Active node was deliberately destabilized as a precursor to a rogue Passive-node promotion.
+
+### VMW-155 - VCHA cluster mode disabled
+- **Component:** vCenter Appliance
+- **Severity:** High
+- **MITRE tactic:** Defense Evasion
+- **MITRE technique:** T1499.004 Application or System Exploitation
+- **Aria search query:**
+
+```text
+"VCHA" AND ("cluster mode disabled" OR "cluster destroyed")
+```
+- **Detection logic / tuning:** Removes vCenter's own HA protection; correlate with VMW-154 and treat as a possible precursor to an availability attack against the management plane itself.
+
+### VMW-156 - Enhanced Linked Mode: new vCenter joined to SSO domain
+- **Component:** vCenter / SSO
+- **Severity:** Critical
+- **MITRE tactic:** Lateral Movement
+- **MITRE technique:** T1021 Remote Services
+- **Aria search query:**
+
+```text
+("Enhanced Linked Mode" OR "ELM") AND ("vCenter joined" OR "repointed" OR "domain join")
+```
+- **Detection logic / tuning:** A vCenter joined to an Enhanced Linked Mode SSO domain inherits shared identity/permission trust across every linked vCenter; an attacker-controlled vCenter joining the domain can pivot permissions across the entire linked estate. Very low expected volume outside planned topology changes.
+
+### VMW-157 - vSphere Trust Authority attestation failure
+- **Component:** vCenter / ESXi
+- **Severity:** Critical
+- **MITRE tactic:** Defense Evasion
+- **MITRE technique:** T1611 Escape to Host
+- **Aria search query:**
+
+```text
+("Trust Authority" OR "TPM attestation") AND ("failed" OR "untrusted" OR "attestation denied")
+```
+- **Detection logic / tuning:** A host failing Trust Authority attestation should be blocked from running encrypted/sensitive workloads; investigate whether the failure reflects genuine firmware/TPM tampering or a benign hardware issue. Distinct from VMW-146/VMW-147's host-level TPM detections in that this covers the centralized Trust Authority policy-decision point.
+
+### VMW-158 - Per-VM encryption policy removed
+- **Component:** vCenter / KMS
+- **Severity:** Critical
+- **MITRE tactic:** Defense Evasion
+- **MITRE technique:** T1600 Weaken Encryption
+- **Aria search query:**
+
+```text
+("VM encryption" OR "encryption storage policy") AND ("removed" OR "unassigned" OR "decrypt")
+```
+- **Detection logic / tuning:** Removing the encryption storage policy from a VM (or an explicit decrypt operation) exposes its virtual disks in plaintext going forward; correlate with VMW-085/VMW-086 KMS changes and VMW-039 (VMDK reattachment) for the full data-exposure chain.
+
+### VMW-159 - vSAN File Service share created
+- **Component:** Storage
+- **Severity:** Medium
+- **MITRE tactic:** Persistence
+- **MITRE technique:** T1136 Create Account
+- **Aria search query:**
+
+```text
+("vSAN File Service" OR "file share") AND ("created" OR "new share")
+```
+- **Detection logic / tuning:** vSAN File Services exposes SMB/NFS shares directly from the vSAN datastore; an unauthorized new share is a potential data-exfiltration or persistence path independent of the VM layer entirely.
+
+### VMW-160 - vSAN File Service share permissions broadened
+- **Component:** Storage
+- **Severity:** High
+- **MITRE tactic:** Defense Evasion
+- **MITRE technique:** T1222 File and Directory Permissions Modification
+- **Aria search query:**
+
+```text
+("vSAN File Service" OR "file share") AND ("permission" OR "ACL") AND ("Everyone" OR "Full Control" OR "broadened")
+```
+- **Detection logic / tuning:** Correlate with VMW-159; a share whose ACL is broadened to Everyone/Full Control shortly after creation is a strong data-exposure signal.
+
+### VMW-161 - vSphere Lifecycle Manager baseline/image tampered
+- **Component:** vCenter API
+- **Severity:** High
+- **MITRE tactic:** Persistence
+- **MITRE technique:** T1195.002 Compromise Software Supply Chain
+- **Aria search query:**
+
+```text
+("vLCM" OR "Lifecycle Manager" OR "Update Manager") AND ("baseline modified" OR "image edited" OR "component added")
+```
+- **Detection logic / tuning:** vLCM controls the exact firmware/driver/hypervisor image applied fleet-wide to ESXi hosts; an unauthorized baseline/image edit is a supply-chain attack surface analogous to VMW-065/VMW-066's per-host VIB detections but scoped to the centralized fleet-management definition, so a single malicious change here can propagate to every host that later remediates against it.
+
+### VMW-162 - vSphere Lifecycle Manager remediation applied outside maintenance window
+- **Component:** vCenter API
+- **Severity:** Medium
+- **MITRE tactic:** Impact
+- **MITRE technique:** T1499.004 Application or System Exploitation
+- **Aria search query:**
+
+```text
+("vLCM" OR "Lifecycle Manager") AND ("remediation started" OR "remediate")
+```
+- **Detection logic / tuning:** Correlate with VMW-161; a tampered baseline is only dangerous once it's actually remediated (applied) to hosts, so a remediation event outside the declared change window following a recent baseline edit is the highest-priority variant of this pattern.
+
+### VMW-163 - Network I/O Control (NIOC) bandwidth policy weakened
+- **Component:** vSphere Networking
+- **Severity:** Medium
+- **MITRE tactic:** Impact
+- **MITRE technique:** T1499 Endpoint Denial of Service
+- **Aria search query:**
+
+```text
+("Network I/O Control" OR "NIOC") AND ("shares reduced" OR "limit removed" OR "reservation changed")
+```
+- **Detection logic / tuning:** NIOC governs bandwidth fairness across traffic types (vMotion, management, VM traffic, storage); weakening a limit/reservation for a competing traffic type can be used to starve management-plane or storage connectivity as a denial-of-service precursor.
+
+### VMW-164 - iSCSI/NFS datastore mounted without CHAP/Kerberos authentication
+- **Component:** Storage
+- **Severity:** High
+- **MITRE tactic:** Initial Access
+- **MITRE technique:** T1078 Valid Accounts
+- **Aria search query:**
+
+```text
+("iSCSI" OR "NFS") AND ("datastore mounted" OR "target added") AND NOT ("CHAP" OR "Kerberos")
+```
+- **Detection logic / tuning:** An iSCSI/NFS datastore mounted without authentication trusts network position alone; on a segment reachable by workload VMs this can allow any host on that segment to mount the same storage.
+
+### VMW-165 - vSphere Replication target reconfigured to unrecognized appliance
+- **Component:** vCenter API
+- **Severity:** High
+- **MITRE tactic:** Exfiltration
+- **MITRE technique:** T1020 Automated Exfiltration
+- **Aria search query:**
+
+```text
+("vSphere Replication" OR "hbr") AND ("target site" OR "VRMS") AND ("changed" OR "reconfigured")
+```
+- **Detection logic / tuning:** vSphere Replication continuously streams VM disk changes to a target site; redirecting the target to an attacker-controlled appliance provides an ongoing, low-noise copy of protected workloads without touching the source VM or its normal backup path.
 ## Suggested detection groups
 
 1. **Identity & Access** - VMW-001 to VMW-024
@@ -1842,6 +2022,7 @@ For count/burst detections, use the Aria UI's time range, grouping, aggregation,
 8. **vCenter Control Plane** - VMW-097 to VMW-122
 9. **Content Library / Supply Chain** - VMW-131 to VMW-134
 10. **Behavioural / Ransomware Correlation** - VMW-148 to VMW-150
+11. **vCenter Appliance / VCHA / Trust Authority / Encryption / vSAN File Services / vLCM / NIOC / Replication (growth batch)** - VMW-151 to VMW-165
 
 ## Priority implementation set
 
