@@ -13,8 +13,8 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds nine catalogues of detection content, spanning two
-different query languages and fourteen platform families — combined
+The repo holds ten catalogues of detection content, spanning two
+different query languages and fifteen platform families — combined
 into one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
@@ -28,16 +28,18 @@ into one filterable view:
 | Windows DHCP Server / Splunk | Splunk SPL | Windows DHCP Server core operation, AD authorization, audit-log integrity, DNS/gateway/route/PXE option redirection, failover, rogue-DHCP network telemetry, DHCPv6, dynamic DNS, PowerShell administration, plus cross-platform (`DHCP-X-###`) correlations | 169 |
 | Windows RDP / Splunk | Splunk SPL | RDP authentication/brute-force, lateral movement, RD Gateway, session lifecycle/hijacking, credential-protection configuration, network exposure/tunneling, post-RDP process-execution correlation, plus cross-platform (`RDP-X-###`) correlations | 94 |
 | VMware Cloud Foundation / Splunk | Splunk SPL | SDDC Manager, NSX, vSAN encryption, VCF Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, Tanzu/Kubernetes, plus cross-platform (`VCF-X-###`) correlations | 162 |
+| Splunk Platform / Splunk | Splunk SPL | Attacks against, abuse of, or suspicious administrative activity within **Splunk itself** — Splunk Cloud, Splunk Enterprise, Enterprise Security, SOAR, forwarders, and the management tier — plus cross-component (`SPL-X-###`) attack-path correlations | 337 |
 
-`index.html` is the **combined library** — all 1201 detections from all
-nine catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 1538 detections from all
+ten catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
-SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, and
-VCF entries, an Aria search query block for Aria entries) plus a CLI/API
-reference, auditd rule set, or risk/maturity/CIM metadata where present.
+SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, VCF,
+and Splunk Platform entries, an Aria search query block for Aria entries)
+plus a CLI/API reference, auditd rule set, or risk/maturity/CIM metadata
+where present.
 
 ## Batch 1: VMware ESXi
 
@@ -502,6 +504,78 @@ MITRE-validated detections in the areas not already covered, rather than
 padding the count with restatements of the existing vCenter/ESXi
 catalogues.
 
+## Splunk Platform Threat Detection Library
+
+`data/splunk-detections.json` is a tenth, independent catalogue: 337
+Splunk SPL detections that flip this repo's usual direction — instead of
+using Splunk to detect threats against some other platform, this
+catalogue detects attacks against, abuse of, compromise of, or suspicious
+administrative activity within **Splunk itself** (Splunk Cloud, Splunk
+Enterprise, Splunk Enterprise Security, Splunk SOAR, forwarders, and the
+management tier), treating Splunk as Tier-0/Tier-1 security
+infrastructure whose compromise can suppress telemetry, alter or delete
+detections, exfiltrate indexed data, or blind the SOC entirely.
+
+| Namespace | Scope | Detections |
+|---|---|---|
+| `SPL-SEARCH-###` | Search abuse, sensitive-data discovery, export/exfiltration, resource abuse, real-time/scheduled searches | 30 |
+| `SPL-AUTH-###` | Local/SAML/LDAP authentication, brute force, SSO bypass, break-glass, user management | 25 |
+| `SPL-KO-###` | Knowledge objects: detection tampering, macros, lookups/allowlists, field extraction, data models, dashboards | 25 |
+| `SPL-DATA-###` | Index administration, retention, deletion, data routing/diversion, masking, Ingest/Edge Processor | 25 |
+| `SPL-ES-###` | Correlation searches, risk-based alerting, notables, threat intel, assets/identities, suppression, federated search, SOAR | 25 |
+| `SPL-APP-###` | Apps, scripted/modular inputs, custom search commands, alert actions, webhooks | 22 |
+| `SPL-RBAC-###` | Roles, capabilities, privilege escalation | 20 |
+| `SPL-X-###` | Cross-component / multi-stage attack-path correlations | 20 |
+| `SPL-INT-###` | `_audit`/`_internal` gaps, anti-forensics, timestamp/host/sourcetype spoofing, data-quality attacks | 18 |
+| `SPL-HEC-###` | HTTP Event Collector token abuse, data poisoning, denial of service | 15 |
+| `SPL-FWD-###` | Universal Forwarder, Heavy Forwarder | 15 |
+| `SPL-CLOUD-###` | Splunk Cloud ACS, IP allow-lists, app vetting, maintenance events | 15 |
+| `SPL-API-###` | REST API abuse, authentication tokens | 15 |
+| `SPL-CONF-###` | High-risk configuration file tampering | 15 |
+| `SPL-DS-###` | Deployment Server (fleet management plane) | 12 |
+| `SPL-SH-###` | Search Head, Search Head Cluster, SHC Deployer | 12 |
+| `SPL-IDX-###` | Indexers, indexer-cluster peer tampering | 12 |
+| `SPL-CM-###` | Cluster Manager | 8 |
+| `SPL-KV-###` | KV Store | 8 |
+
+Every entry follows `schema/splunk-platform-detection.schema.json`, which
+uses `platform` (Splunk Cloud / Splunk Enterprise / Hybrid / Enterprise
+Security / SOAR / Forwarder / Management Tier) and
+`deployment_applicability` fields — not ID prefix — as the authoritative
+Cloud-vs-Enterprise signal, since the specification's `SPL-ENT-###`
+namespace is folded into whichever namespace actually matches each
+detection's subject rather than kept as a separate catch-all (see the
+scope note in `docs/splunk-platform-detection-library.md`). Every MITRE
+technique cited was validated against the cached technique corpus;
+"impaired security control" detections cite `T1070` (Indicator Removal)
+rather than the uncached `T1562` (Impair Defenses), the same substitution
+used throughout this library.
+
+All ten named attack paths from the specification's Attack-Path Matrix
+are implemented as `SPL-X-###` correlations — Identity → Splunk Admin,
+Splunk Admin → Detection Tampering, Splunk Admin → Sensitive Data, App →
+Server Execution, Deployment Server → Forwarder Fleet, Heavy Forwarder →
+Data Diversion, Search Head → Detection/Search Abuse, HEC → Data
+Poisoning, Data Pipeline → Logging Blind Spot, and Enterprise Security →
+SOC Defense Evasion — plus ten further named chains (hybrid Cloud/on-prem,
+data exfiltration, log suppression, search resource exhaustion,
+on-premises host compromise, multi-stack attacks, consolidated
+persistence, a ransomware-style chain against Splunk itself, and a
+fleet-wide top-level escalation correlation). See
+[`docs/splunk-platform-detection-library.md`](docs/splunk-platform-detection-library.md)
+for coverage matrices, the full Cloud-vs-Enterprise applicability matrix,
+Priority Detection Packs (Tier 1: 55 detections, 11 themed packs), the
+complete Attack-Path Matrix, and the detection gap analysis covering
+exactly what Splunk Cloud does and does not expose to the customer.
+
+This is a deliberately-scoped release (337 detections against a
+requested 500) for the same reason as the other large-master-prompt
+catalogues in this library — every one of the specification's 20
+requested namespaces and every named attack-path chain has dedicated,
+MITRE-validated coverage; padding toward 500 would have meant inventing
+Splunk internal indexes, REST endpoints, or configuration files that
+don't exist.
+
 ## Repository layout
 
 ```
@@ -514,6 +588,7 @@ data/ilo-detections.json       Canonical source of truth for the HPE iLO catalog
 data/dhcp-detections.json      Canonical source of truth for the Windows DHCP Server catalogue.
 data/rdp-detections.json       Canonical source of truth for the Windows RDP catalogue.
 data/vcf-detections.json       Canonical source of truth for the VMware Cloud Foundation catalogue.
+data/splunk-detections.json    Canonical source of truth for the Splunk Platform (self-protection) catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -525,6 +600,7 @@ docs/ilo-detection-library.md  Coverage matrices, Priority Detection Packs, and 
 docs/dhcp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows DHCP Server catalogue.
 docs/rdp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows RDP catalogue.
 docs/vcf-detection-library.md  Coverage matrices, Priority Detection Packs, VCF Attack-Path Matrix, and gap analysis for the VMware Cloud Foundation catalogue.
+docs/splunk-platform-detection-library.md  Coverage matrices, Cloud-vs-Enterprise matrix, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Splunk Platform catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -534,9 +610,10 @@ schema/ilo-detection.schema.json  JSON Schema for data/ilo-detections.json entri
 schema/dhcp-detection.schema.json  JSON Schema for data/dhcp-detections.json entries.
 schema/rdp-detection.schema.json  JSON Schema for data/rdp-detections.json entries.
 schema/vcf-detection.schema.json  JSON Schema for data/vcf-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all nine data files.
-index.html                     Generated: template + all nine data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all nine data/*.json files.
+schema/splunk-platform-detection.schema.json  JSON Schema for data/splunk-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all ten data files.
+index.html                     Generated: template + all ten data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all ten data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -614,15 +691,16 @@ The key fields:
    (RHEL/IdM/AAP/Satellite), `data/fortinet-detections.json` (Fortinet
    Security Fabric), `data/idrac-detections.json` (Dell iDRAC),
    `data/ilo-detections.json` (HPE iLO), `data/dhcp-detections.json`
-   (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP), or
-   `data/vcf-detections.json` (VMware Cloud Foundation), validating
-   against the matching schema file in `schema/`. Detection IDs must be
-   unique **across all nine files**, not just within one —
+   (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP),
+   `data/vcf-detections.json` (VMware Cloud Foundation), or
+   `data/splunk-detections.json` (Splunk Platform self-protection),
+   validating against the matching schema file in `schema/`. Detection
+   IDs must be unique **across all ten files**, not just within one —
    `tools/build.py` enforces this at build time (see the `HREDFISH-###`
    vs. `REDFISH-###` note in the HPE iLO section above for why this
    matters with cross-vendor standards like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all nine `__..._JSON__`
+   styling), edit `index.template.html` — leave all ten `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -707,4 +785,25 @@ sensitive-VM/namespace tag lookups, and the `VCF-X-###` multi-platform
 correlations generally — depend on maintained reference lookups this
 library cannot ship for you; see `docs/vcf-detection-library.md` §10 for
 the full list of what each correlation assumes is in place before it can
-fire as designed.
+fire as designed. The Splunk Platform catalogue's SPL relies primarily on
+`_audit` and `_internal` — Splunk's own internal indexes — for the
+majority of its detections, but a substantial subset (every `SPL-CONF`
+configuration-file-tampering entry that isn't already captured by
+`_audit`, the on-premises-only `SPL-IDX`/`SPL-CM`/`SPL-DS` host-compromise
+detections, and `SPL-APP-006`/`SPL-X-004`/`SPL-X-015`'s execution
+confirmation) depend on OS-level file-integrity monitoring or process
+telemetry (Sysmon/auditd) that **Splunk Cloud customers cannot deploy**
+against provider-managed infrastructure — every such entry says so
+explicitly in its `tuning_guidance` field, and `docs/splunk-platform-detection-library.md`
+§2 and §11 give the full Cloud-vs-Enterprise applicability matrix and gap
+analysis rather than presenting Cloud-inaccessible telemetry as available.
+This catalogue also does not claim visibility into Splunk Cloud's own
+provider-managed operations (the underlying OS, indexer hardware, or
+internal platform-support tooling) beyond what the customer-visible ACS
+API and `_audit`/`_internal` expose — see `SPL-CLOUD-012`'s explicit
+caveat about support-access visibility varying by Splunk Cloud offering.
+Several `Ingest Processor`/`Edge Processor`/`SOAR` detections
+(`SPL-DATA-017` through `SPL-DATA-022`, `SPL-ES-025`) use bracketed
+sourcetype placeholders and explicitly flag that the exact audit-event
+schema is product/version-dependent and should be validated against your
+specific deployment before relying on the literal field names shown.
