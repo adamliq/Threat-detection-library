@@ -13,9 +13,9 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds seven catalogues of detection content, spanning two
-different query languages and twelve platform families — combined into
-one filterable view:
+The repo holds eight catalogues of detection content, spanning two
+different query languages and thirteen platform families — combined
+into one filterable view:
 
 | Catalogue | Query language | Scope | Detections |
 |---|---|---|---|
@@ -26,14 +26,15 @@ one filterable view:
 | Dell iDRAC / Splunk | Splunk SPL | Dell iDRAC, Lifecycle Controller, Redfish, RACADM, IPMI, Dell OpenManage Enterprise, plus cross-platform (`DELL-X-###`) correlations | 96 |
 | HPE iLO / Splunk | Splunk SPL | HPE iLO, Remote Console, Virtual Media, UEFI/BIOS/Firmware, Redfish, Integrated Management Log, Active Health System, HPE OneView, plus cross-platform (`HPE-X-###`) correlations | 107 |
 | Windows DHCP Server / Splunk | Splunk SPL | Windows DHCP Server core operation, AD authorization, audit-log integrity, DNS/gateway/route/PXE option redirection, failover, rogue-DHCP network telemetry, DHCPv6, dynamic DNS, PowerShell administration, plus cross-platform (`DHCP-X-###`) correlations | 169 |
+| Windows RDP / Splunk | Splunk SPL | RDP authentication/brute-force, lateral movement, RD Gateway, session lifecycle/hijacking, credential-protection configuration, network exposure/tunneling, post-RDP process-execution correlation, plus cross-platform (`RDP-X-###`) correlations | 94 |
 
-`index.html` is the **combined library** — all 930 detections from all
-seven catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 1024 detections from all
+eight catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
-SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, and DHCP
+SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, and RDP
 entries, an Aria search query block for Aria entries) plus a CLI/API
 reference, auditd rule set, or risk/maturity/CIM metadata where present.
 
@@ -392,6 +393,52 @@ highest-value patterns has dedicated, full-depth coverage; remaining
 breadth (exhaustive per-vendor switch DHCP-snooping syntax, NAC-vendor-
 specific integration depth) is extendable in future batches.
 
+## Windows RDP Threat Detection Library
+
+`data/rdp-detections.json` is an eighth, independent catalogue: 94
+Splunk SPL detections treating RDP as both a legitimate administrative
+capability and a major post-compromise lateral-movement and access
+mechanism.
+
+| Namespace | Scope | Detections |
+|---|---|---|
+| `RDP-###` | Core: lateral movement (fan-out/fan-in/concurrent/impossible-travel), behavioral baselines, ransomware/exfiltration correlation, alternative-client classification | 18 |
+| `RDP-TS-###` | Session lifecycle, reconnect, shadowing, hijacking (tscon.exe), mstsc, .rdp files, redirection | 16 |
+| `RDP-CFG-###` | NLA/CredSSP/Restricted Admin, enablement, port, firewall, GPO, group membership | 14 |
+| `RDP-AUTH-###` | Authentication failures, brute force, password spraying, success-after-failure, behavioral | 12 |
+| `RDP-NET-###` | Internet exposure, port scanning, tunneling (SSH/portproxy/chisel/ligolo), certificates | 12 |
+| `RDP-GW-###` | RD Gateway, RD Web Access, Connection Broker, RemoteApp | 10 |
+| `RDP-PROC-###` | Process execution after RDP: discovery, credential access, persistence, defense evasion, lateral pivot | 6 |
+| `RDP-X-###` | Cross-platform correlations | 6 |
+
+Every entry follows `schema/rdp-detection.schema.json`. Every MITRE
+technique cited (`T1021.001`, `T1078`/`T1078.002`, `T1110`/`T1110.003`,
+`T1563`/`T1563.002` for session hijacking, and others) was already
+present in the validated technique cache — no unmapped-technique
+substitutions were needed for this catalogue.
+
+The flagship attack chains named explicitly in the spec are all
+implemented as full cross-platform correlations: **VPN compromise →
+RDP fan-out** (`RDP-X-001`), **AD privilege escalation → RDP**
+(`RDP-X-002`), **RDP compromise → credential theft** (`RDP-X-003`),
+**RDP compromise → persistence** (`RDP-X-004`), **RDP compromise →
+ransomware** (`RDP-X-005`), and **firewall exposure → brute force →
+compromise** (`RDP-X-006`), alongside the flagship single-catalogue
+session-hijacking chain (`RDP-TS-010`, tscon.exe redirecting into
+another user's session — the technique behind SYSTEM-to-Domain-Admin
+session takeover). See
+[`docs/rdp-detection-library.md`](docs/rdp-detection-library.md) for
+coverage matrices, Priority Detection Packs (Tier 1: 20 detections, 8
+themed packs), an explicit table mapping the spec's named priority
+patterns to their detection IDs, and the detection gap analysis.
+
+This is a deliberately-scoped first release (94 detections against a
+requested 300) for the same reason as the other large-master-prompt
+catalogues in this library — every one of the specification's named
+highest-value patterns has dedicated coverage; remaining breadth
+(exhaustive RD Web/Broker/RemoteApp sub-scenarios, printer/smart-card/
+audio redirection depth) is extendable in future batches.
+
 ## Repository layout
 
 ```
@@ -402,6 +449,7 @@ data/fortinet-detections.json  Canonical source of truth for the Fortinet Securi
 data/idrac-detections.json     Canonical source of truth for the Dell iDRAC catalogue.
 data/ilo-detections.json       Canonical source of truth for the HPE iLO catalogue.
 data/dhcp-detections.json      Canonical source of truth for the Windows DHCP Server catalogue.
+data/rdp-detections.json       Canonical source of truth for the Windows RDP catalogue.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -411,6 +459,7 @@ docs/fortinet-detection-library.md  Coverage matrices and Priority Detection Pac
 docs/idrac-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Dell iDRAC catalogue.
 docs/ilo-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the HPE iLO catalogue.
 docs/dhcp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows DHCP Server catalogue.
+docs/rdp-detection-library.md  Coverage matrices, Priority Detection Packs, and gap analysis for the Windows RDP catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -418,9 +467,10 @@ schema/fortinet-detection.schema.json  JSON Schema for data/fortinet-detections.
 schema/idrac-detection.schema.json  JSON Schema for data/idrac-detections.json entries.
 schema/ilo-detection.schema.json  JSON Schema for data/ilo-detections.json entries.
 schema/dhcp-detection.schema.json  JSON Schema for data/dhcp-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all seven data files.
-index.html                     Generated: template + all seven data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all seven data/*.json files.
+schema/rdp-detection.schema.json  JSON Schema for data/rdp-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all eight data files.
+index.html                     Generated: template + all eight data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all eight data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -497,14 +547,15 @@ The key fields:
    `data/aria-detections.json` (Aria), `data/redhat-detections.json`
    (RHEL/IdM/AAP/Satellite), `data/fortinet-detections.json` (Fortinet
    Security Fabric), `data/idrac-detections.json` (Dell iDRAC),
-   `data/ilo-detections.json` (HPE iLO), or `data/dhcp-detections.json`
-   (Windows DHCP Server), validating against the matching schema file in
-   `schema/`. Detection IDs must be unique **across all seven files**,
-   not just within one — `tools/build.py` enforces this at build time
-   (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE iLO section
-   above for why this matters with cross-vendor standards like Redfish).
+   `data/ilo-detections.json` (HPE iLO), `data/dhcp-detections.json`
+   (Windows DHCP Server), or `data/rdp-detections.json` (Windows RDP),
+   validating against the matching schema file in `schema/`. Detection
+   IDs must be unique **across all eight files**, not just within one —
+   `tools/build.py` enforces this at build time (see the `HREDFISH-###`
+   vs. `REDFISH-###` note in the HPE iLO section above for why this
+   matters with cross-vendor standards like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all seven `__..._JSON__`
+   styling), edit `index.template.html` — leave all eight `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -566,3 +617,12 @@ telemetry sourcetypes before use; several entries (`DHCP-NET-###`
 rogue-server detections in particular) explicitly depend on Zeek/
 Suricata/switch-DHCP-snooping telemetry and this library does not claim
 Windows DHCP Server logs alone can reliably detect a rogue DHCP server.
+The Windows RDP catalogue's SPL relies on standard Windows Security
+event codes (4624/4625/4648/4688/etc.) plus the TerminalServices
+operational channels, Sysmon, and — for several entries — network/VPN/
+firewall telemetry; this library does not claim Security 4624/4625
+alone can detect session hijacking, RD Gateway abuse, tunneling, or any
+of the `RDP-X-###` cross-platform chains — see each entry's
+`telemetry_requirement` and `data_sources` fields, and
+`docs/rdp-detection-library.md` §10, before assuming a given detection
+will fire from your actual log collection.
