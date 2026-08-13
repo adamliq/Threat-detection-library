@@ -364,6 +364,31 @@
   .coverage-pill.covered { background: var(--badge-low-bg); color: var(--badge-low-text); }
   .coverage-pill.gap { background: var(--bg); border: 1px solid var(--border); color: var(--text-faint); }
   .coverage-note { font-size: 12px; color: var(--text-faint); }
+  .coverage-platform-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .coverage-platform-tab {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--bg-inset); color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .coverage-platform-tab:hover { border-color: var(--accent); }
+  .coverage-platform-tab.active { background: var(--badge-info-bg); color: var(--badge-info-text); border-color: transparent; }
+  .coverage-platform-tab .cpt-count { color: var(--text-faint); font-weight: 500; }
+  .coverage-platform-tab.active .cpt-count { color: var(--badge-info-text); opacity: 0.75; }
+
+  .coverage-tech-details { margin: 0; }
+  .coverage-tech-details summary.coverage-tech-row { list-style: none; cursor: pointer; }
+  .coverage-tech-details summary.coverage-tech-row::-webkit-details-marker { display: none; }
+  .coverage-tech-details summary.coverage-tech-row::before {
+    content: "▸"; display: inline-block; width: 12px; color: var(--text-faint); font-size: 10px;
+    transition: transform 0.1s ease;
+  }
+  .coverage-tech-details[open] summary.coverage-tech-row::before { transform: rotate(90deg); }
+  .coverage-analytics-list { padding: 2px 8px 10px 26px; display: flex; flex-direction: column; gap: 10px; }
+  .coverage-analytic { background: var(--bg-inset); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .coverage-analytic-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 12.5px; font-weight: 650; }
+  .coverage-analytic-head a { color: var(--link); }
+  .coverage-log-list { margin: 2px 0 0; padding-left: 16px; font-size: 12px; color: var(--text-muted); }
+  .coverage-log-list li { margin-bottom: 1px; }
 
   .card-id { font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, monospace; font-weight: 600; }
   .tag.tool-splunk { color: var(--badge-info-text); background: var(--badge-info-bg); border-color: transparent; font-weight: 600; }
@@ -392,7 +417,7 @@
         <span>Filters</span>
         <span class="filter-count-badge" id="filter-count-badge" hidden>0</span>
       </button>
-      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage for the ESXi platform, across both catalogues">ATT&amp;CK Coverage</button>
+      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage by platform (ESXi, Windows), including official Detection Analytics and log-source Data Components">ATT&amp;CK Coverage</button>
       <button class="btn" id="export-btn" title="Export current results as JSON">Export</button>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -155709,8 +155734,12 @@
       " VMware Cloud Foundation Splunk SPL + " + SPLUNK_ENTRIES.length +
       " Splunk Platform Splunk SPL + " + AD_ENTRIES.length +
       " Active Directory Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
-    if (MITRE) {
-      line += " · " + MITRE.metadata.techniques_covered_by_library + "/" + MITRE.metadata.technique_count + " ESXi ATT&CK techniques covered";
+    var coverageParts = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; }).map(function (p) {
+      var m = MITRE_DATA[p.id].metadata;
+      return m.techniques_covered_by_library + "/" + m.technique_count + " " + p.label + " ATT&CK techniques covered";
+    });
+    if (coverageParts.length) {
+      line += " · " + coverageParts.join(" · ");
     }
     document.getElementById("stats-line").textContent = line;
   }
@@ -155937,8 +155966,17 @@
     showToast("Exported " + results.length + " detection" + (results.length === 1 ? "" : "s"));
   });
 
-  /* ---------------------------- MITRE ATT&CK coverage (loaded from data/mitre-attack-esxi.json) ---------------------------- */
-  var MITRE = null;
+  /* ---------------------------- MITRE ATT&CK coverage, by platform (Analytics / Detection Strategies / Data Sources) ---------------------------- */
+  // Each entry is a self-contained data/mitre-attack-<platform>.json produced by
+  // tools/fetch_mitre_platform.py, loaded independently at runtime (not baked into
+  // the page) so coverage data can be refreshed without a full rebuild. Add a new
+  // platform here plus a matching --platform run of that script to extend coverage.
+  var COVERAGE_PLATFORMS = [
+    { id: "ESXi", label: "ESXi", file: "data/mitre-attack-esxi.json" },
+    { id: "Windows", label: "Windows", file: "data/mitre-attack-windows.json" }
+  ];
+  var MITRE_DATA = {};                        // platform id -> loaded coverage JSON (absent until fetched, or if fetch failed)
+  var coveragePlatform = COVERAGE_PLATFORMS[0].id;
   var coverageBtn = document.getElementById("coverage-btn");
   var TACTIC_ORDER = [
     "Reconnaissance", "Resource Development", "Initial Access", "Execution", "Persistence",
@@ -155947,25 +155985,69 @@
   ];
 
   function loadMitreCoverage() {
-    fetch("data/mitre-attack-esxi.json", { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (data) {
-        MITRE = data;
-        coverageBtn.title = data.metadata.techniques_covered_by_library + " of " +
-          data.metadata.technique_count + " ATT&CK techniques for " + data.metadata.platform + " covered";
-        updateStatsLine();
-      })
-      .catch(function () {
-        // Expected when opened via file:// (browsers block fetch of local files); the
-        // button below explains this rather than failing silently.
-      });
+    COVERAGE_PLATFORMS.forEach(function (p) {
+      fetch(p.file, { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(function (data) {
+          MITRE_DATA[p.id] = data;
+          updateCoverageBtnTitle();
+          updateStatsLine();
+          // If the modal is already open (a platform finished loading after another),
+          // refresh it in place so the new tab becomes selectable immediately.
+          var overlay = document.getElementById("overlay");
+          if (overlay && !overlay.hidden && document.getElementById("coverage-tabs")) {
+            renderCoverageModal();
+          }
+        })
+        .catch(function () {
+          // Expected when opened via file:// (browsers block fetch of local files), or
+          // for a platform whose data file hasn't been generated yet; the button/modal
+          // explain this rather than failing silently.
+        });
+    });
+  }
+
+  function updateCoverageBtnTitle() {
+    var parts = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; }).map(function (p) {
+      var m = MITRE_DATA[p.id].metadata;
+      return p.label + " " + m.techniques_covered_by_library + "/" + m.technique_count;
+    });
+    if (parts.length) {
+      coverageBtn.title = "ATT&CK technique coverage — " + parts.join(" · ") +
+        " (click for official Detection Analytics, Detection Strategies, and Data Sources)";
+    }
+  }
+
+  function coverageTabsHtml() {
+    var loaded = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; });
+    if (loaded.length < 2) return ""; // no point showing a switcher for a single loaded platform
+    return '<div class="coverage-platform-tabs" id="coverage-tabs">' +
+      loaded.map(function (p) {
+        var m = MITRE_DATA[p.id].metadata;
+        return '<button class="coverage-platform-tab' + (p.id === coveragePlatform ? ' active' : '') + '" data-platform="' + esc(p.id) + '">' +
+          esc(p.label) + ' <span class="cpt-count">' + m.techniques_covered_by_library + '/' + m.technique_count + '</span></button>';
+      }).join("") +
+      '</div>';
   }
 
   function coverageModalHtml() {
-    var m = MITRE.metadata;
+    var data = MITRE_DATA[coveragePlatform];
+    var m = data.metadata;
     var pct = m.technique_count ? Math.round((m.techniques_covered_by_library / m.technique_count) * 100) : 0;
+
+    // Analytics are per-technique in the source data; index them once so each
+    // technique row can expand to show the actual Detection Analytic(s), the
+    // Detection Strategy each belongs to, and the log-source Data Sources/Data
+    // Components it depends on — not just a bare count.
+    var analyticsByTechnique = {};
+    (data.analytics || []).forEach(function (a) {
+      (a.techniques || []).forEach(function (t) {
+        (analyticsByTechnique[t.attack_id] = analyticsByTechnique[t.attack_id] || []).push(a);
+      });
+    });
+
     var byTactic = {};
-    MITRE.techniques.forEach(function (t) {
+    data.techniques.forEach(function (t) {
       (t.tactics.length ? t.tactics : ["Uncategorized"]).forEach(function (tac) {
         (byTactic[tac] = byTactic[tac] || []).push(t);
       });
@@ -155977,12 +156059,32 @@
       var techs = byTactic[tac].slice().sort(function (a, b) { return a.attack_id < b.attack_id ? -1 : 1; });
       var covered = techs.filter(function (t) { return t.covered_by_library; }).length;
       var rows = techs.map(function (t) {
-        return '<div class="coverage-tech-row">' +
-          '<span><span class="ct-id">' + esc(t.attack_id) + '</span><a class="ct-name" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.name) + '</a></span>' +
+        var summary = '<span><span class="ct-id">' + esc(t.attack_id) + '</span><a class="ct-name" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.name) + '</a></span>' +
           '<span>' +
           (t.analytic_count_platform ? '<span class="coverage-note">' + t.analytic_count_platform + ' MITRE analytic' + (t.analytic_count_platform === 1 ? '' : 's') + '</span> ' : '') +
           '<span class="coverage-pill ' + (t.covered_by_library ? 'covered">In library' : 'gap">Not yet covered') + '</span>' +
-          '</span></div>';
+          '</span>';
+        var techAnalytics = analyticsByTechnique[t.attack_id];
+        if (!techAnalytics || !techAnalytics.length) {
+          return '<div class="coverage-tech-row">' + summary + '</div>';
+        }
+        var analyticsHtml = techAnalytics.map(function (a) {
+          var logs = (a.log_sources || []).map(function (ls) {
+            return '<li>' + esc(ls.log_source || "") + (ls.data_component ? ' <span class="coverage-note">&mdash; ' + esc(ls.data_component) + '</span>' : '') + '</li>';
+          }).join("");
+          return '<div class="coverage-analytic">' +
+            '<div class="coverage-analytic-head">' +
+            '<a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.analytic_id) + (a.name ? ' — ' + esc(a.name) : '') + '</a>' +
+            (a.detection_strategy && a.detection_strategy.name ? '<span class="coverage-note">Detection Strategy: ' +
+              (a.detection_strategy.url ? '<a href="' + esc(a.detection_strategy.url) + '" target="_blank" rel="noopener">' + esc(a.detection_strategy.name) + '</a>' : esc(a.detection_strategy.name)) +
+              '</span>' : '') +
+            '</div>' +
+            (a.description ? '<p class="coverage-note">' + esc(a.description) + '</p>' : '') +
+            (logs ? '<div class="coverage-note" style="margin-top:4px">Data sources</div><ul class="coverage-log-list">' + logs + '</ul>' : '') +
+            '</div>';
+        }).join("");
+        return '<details class="coverage-tech-details"><summary class="coverage-tech-row">' + summary + '</summary>' +
+          '<div class="coverage-analytics-list">' + analyticsHtml + '</div></details>';
       }).join("");
       return '<details class="coverage-tactic-group"' + (covered > 0 ? ' open' : '') + '>' +
         '<summary><span>' + esc(tac) + '</span><span class="tcount">' + covered + ' / ' + techs.length + ' covered</span></summary>' +
@@ -155996,10 +156098,12 @@
         '<span class="tag">Retrieved ' + esc(m.retrieved) + '</span></div>' +
       '</div><button class="close-btn" id="coverage-close" aria-label="Close">&times;</button></div>' +
       '<div class="detail-body">' +
+        coverageTabsHtml() +
         '<div class="detail-section"><p>Every technique MITRE currently scopes to the <strong>' + esc(m.platform) +
-        '</strong> platform, cross-referenced against detections in both catalogues (Splunk SPL and VMware Aria ' +
-        'Operations for Logs). Each technique also shows how many formal MITRE ATT&amp;CK Detection Analytics exist ' +
-        'for it on this platform, for planning future batches.</p></div>' +
+        '</strong> platform, cross-referenced against this library’s detections for that platform. Techniques with a ' +
+        'MITRE analytic count are expandable (click the row) to show the actual official <strong>Detection Analytic(s)</strong> ' +
+        '— each grounded in a <strong>Detection Strategy</strong> and the log-source <strong>Data Source</strong>/Data Component(s) ' +
+        'it depends on — for planning future batches or validating existing ones.</p></div>' +
         '<div class="coverage-summary">' +
           '<div class="big-num">' + m.techniques_covered_by_library + ' / ' + m.technique_count + '<br><small>techniques covered</small></div>' +
           '<div class="coverage-bar"><div class="coverage-bar-fill" style="width:' + pct + '%"></div></div>' +
@@ -156011,16 +156115,32 @@
       '</div>';
   }
 
+  function wireCoverageTabs() {
+    document.querySelectorAll(".coverage-platform-tab").forEach(function (el) {
+      el.addEventListener("click", function () {
+        coveragePlatform = el.getAttribute("data-platform");
+        renderCoverageModal();
+      });
+    });
+  }
+
+  function renderCoverageModal() {
+    document.getElementById("detail-panel").innerHTML = coverageModalHtml();
+    document.getElementById("coverage-close").addEventListener("click", closeDetail);
+    wireCoverageTabs();
+  }
+
   function openCoverage() {
-    if (!MITRE) {
-      showToast("Coverage data not loaded — serve this page over http(s) so data/mitre-attack-esxi.json can be fetched.");
+    var loaded = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; });
+    if (!loaded.length) {
+      showToast("Coverage data not loaded — serve this page over http(s) so the MITRE data files can be fetched.");
       return;
     }
-    document.getElementById("detail-panel").innerHTML = coverageModalHtml();
+    if (!MITRE_DATA[coveragePlatform]) { coveragePlatform = loaded[0].id; }
+    renderCoverageModal();
     var overlay = document.getElementById("overlay");
     overlay.hidden = false;
     overlay.scrollTop = 0;
-    document.getElementById("coverage-close").addEventListener("click", closeDetail);
   }
   coverageBtn.addEventListener("click", openCoverage);
 
