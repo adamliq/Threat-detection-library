@@ -6,10 +6,10 @@
     "attack_version_reference": "https://attack.mitre.org/resources/updates/",
     "attack_spec_version": "3.3.0",
     "platform": "ESXi",
-    "retrieved": "2026-08-12",
+    "retrieved": "2026-08-14",
     "technique_count": 117,
     "analytic_count": 107,
-    "techniques_covered_by_library": 41,
+    "techniques_covered_by_library": 42,
     "tactic_breakdown": {
       "Initial Access": 5,
       "Execution": 7,
@@ -1975,7 +1975,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1564",
