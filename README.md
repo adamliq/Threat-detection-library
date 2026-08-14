@@ -777,6 +777,54 @@ The key fields:
 - `related_detections[]` — ids of other entries in this library
 - `author`, `created`, `modified`, `version`
 
+### Schema differences across catalogues
+
+The eleven catalogues do **not** share one schema — each has its own file
+under `schema/`, and the combined `index.html` view normalizes what it can
+(`_component`, `_tool`) but does not paper over every field difference.
+Two are worth knowing about if you're consuming this data programmatically
+rather than through the UI:
+
+- **False-positive guidance is represented two different ways.** ESXi and
+  Aria use `known_false_positives` — free-text narrative guidance (e.g.
+  "baseline your backup service accounts before enabling this in
+  production"). The other nine catalogues (Red Hat, Fortinet, Dell iDRAC,
+  HPE iLO, Windows DHCP, Windows RDP, VCF, Splunk Platform, Active
+  Directory — 1,674 entries) instead use `false_positive_rating`, a
+  three-value category (`Low` / `Medium` / `High`) plus prose guidance
+  spread across `tuning_guidance` and `investigation_steps[]`. Don't
+  assume `known_false_positives` is present outside ESXi/Aria, or that
+  `false_positive_rating` exists on those two.
+- **`type` / `status` / `method` are effectively ESXi/Aria-only.** ESXi
+  populates all three; Aria populates `type`/`status` but not `method`;
+  none of the other nine catalogues populate any of the three (they use
+  `detection_type` and `detection_maturity` instead, which serve a similar
+  role but aren't the same field or vocabulary). Filtering the *combined*
+  view by these fields will only ever surface ESXi/Aria results — this is
+  expected, not a bug, but worth knowing before building a facet or export
+  on top of them.
+
+`query field` (`spl` vs `aria_query`) is the one difference that's
+intentional and not drift — Aria genuinely uses a different query language
+than the other ten Splunk SPL catalogues.
+
+### Performance note: `transaction`-based correlations
+
+A number of the cross-platform correlation detections (the `*-X-###`
+namespaces — `RH-X`, `FNT-X`, `DELL-X`, `HPE-X`, `DHCP-X`, `RDP-X`, `VCF-X`,
+`SPL-X`, `AD-X`, and similarly-purposed entries elsewhere) use SPL's
+`transaction` command with `startswith`/`endswith` to stitch together a
+multi-stage sequence for one entity. `transaction` is correct and reads
+clearly, but it's memory-heavy and doesn't distribute well across indexers;
+at high event volume it can be slow or hit `maxopentxn`/`maxopenevents`
+limits. Where a correlation only needs "event A then event B for the same
+entity within N hours" (the common case for these detections), a
+`stats … by <entity>` pattern with `earliest`/`latest` `eval`s and a span
+check, or a `tstats`-accelerated prefilter, is usually cheaper at scale.
+Treat the `transaction`-based SPL in this library as a correct, readable
+reference implementation — worth revisiting for cost if you're running one
+of these at high volume in production, not something to fix reflexively.
+
 ## Adding a new batch
 
 1. Append new detection objects to `data/detections.json` (ESXi/Splunk),
