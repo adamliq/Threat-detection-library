@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, and Splunk Security Content (ESCU) Windows Endpoint Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -35,6 +35,14 @@
     --shadow: 0 1px 2px rgba(20,22,28,0.06), 0 4px 14px rgba(20,22,28,0.06);
     --shadow-lg: 0 10px 40px rgba(20,22,28,0.18);
     --focus-ring: 0 0 0 3px rgba(164,33,46,0.35);
+    /* Heat Coverage sequential ramp: 13 steps, low->high, built from the
+       page's own accent (crimson) rather than a generic hue. Step 12 is the
+       literal --accent value, so the hottest cells match the brand exactly. */
+    --seq-0: #f8f4f5; --seq-1: #efe5e6; --seq-2: #e7d4d6; --seq-3: #e0c3c6;
+    --seq-4: #d9b0b4; --seq-5: #d49da2; --seq-6: #d08990; --seq-7: #cd737c;
+    --seq-8: #ca5d68; --seq-9: #c94653; --seq-10: #c33341; --seq-11: #b42937;
+    --seq-12: #a4212e;
+    --seq-ink-flip: 8; /* step index at/after which cell text flips to white */
     color-scheme: light;
   }
   :root:not([data-theme="light"]) {
@@ -70,6 +78,13 @@
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
       --shadow-lg: 0 20px 60px rgba(0,0,0,0.55);
       --focus-ring: 0 0 0 3px rgba(239,93,104,0.4);
+      /* Anchor flips in dark mode: low value blends toward the dark surface,
+         high value (step 12, the literal dark-mode --accent) pops bright. */
+      --seq-0: #2c1b1c; --seq-1: #3c2123; --seq-2: #4d2629; --seq-3: #5f2a2e;
+      --seq-4: #722d32; --seq-5: #862e35; --seq-6: #9b2f37; --seq-7: #b12f39;
+      --seq-8: #c82d39; --seq-9: #d83340; --seq-10: #e1404c; --seq-11: #e84e5a;
+      --seq-12: #ef5d68;
+      --seq-ink-flip: 5;
     }
   }
   :root[data-theme="dark"] {
@@ -101,6 +116,11 @@
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
     --shadow-lg: 0 20px 60px rgba(0,0,0,0.55);
     --focus-ring: 0 0 0 3px rgba(239,93,104,0.4);
+    --seq-0: #2c1b1c; --seq-1: #3c2123; --seq-2: #4d2629; --seq-3: #5f2a2e;
+    --seq-4: #722d32; --seq-5: #862e35; --seq-6: #9b2f37; --seq-7: #b12f39;
+    --seq-8: #c82d39; --seq-9: #d83340; --seq-10: #e1404c; --seq-11: #e84e5a;
+    --seq-12: #ef5d68;
+    --seq-ink-flip: 5;
     color-scheme: dark;
   }
 
@@ -168,6 +188,7 @@
   .btn.primary:hover { filter: brightness(1.08); }
 
   .layout { max-width: 1320px; margin: 0 auto; display: flex; gap: 22px; padding: 20px; align-items: flex-start; }
+  .layout[hidden] { display: none; }
   .sidebar {
     width: 250px; flex-shrink: 0; position: sticky; top: 78px;
     max-height: calc(100vh - 96px);
@@ -393,6 +414,110 @@
   .card-id { font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, monospace; font-weight: 600; }
   .tag.tool-splunk { color: var(--badge-info-text); background: var(--badge-info-bg); border-color: transparent; font-weight: 600; }
   .tag.tool-aria { color: var(--badge-aria-text); background: var(--badge-aria-bg); border-color: transparent; font-weight: 600; }
+
+  /* ---------------------------- View tabs ---------------------------- */
+  .view-tabs-wrap { max-width: 1320px; margin: 0 auto; padding: 10px 20px 0; }
+  .view-tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--border); }
+  .view-tab {
+    background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted);
+    font-family: inherit; font-size: 13.5px; font-weight: 650; padding: 10px 2px; margin-bottom: -1px; cursor: pointer;
+  }
+  .view-tab:hover { color: var(--text); }
+  .view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  body.heat-active .search-wrap, body.heat-active #export-btn, body.heat-active .filter-toggle-btn { display: none; }
+
+  /* ---------------------------- Heat Coverage view ---------------------------- */
+  .heat-view { max-width: 1320px; margin: 0 auto; padding: 20px; }
+  .heat-view[hidden] { display: none; }
+  .heat-intro { font-size: 13.5px; color: var(--text-muted); max-width: 76ch; margin: 0 0 16px; }
+  .heat-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .heat-stat {
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 16px; min-width: 130px; box-shadow: var(--shadow);
+  }
+  .heat-stat .num {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace; font-variant-numeric: tabular-nums;
+    font-size: 1.3rem; font-weight: 700; line-height: 1.15; color: var(--text);
+  }
+  .heat-stat.hot .num { color: var(--accent); }
+  .heat-stat .lbl { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+
+  .heat-toolbar {
+    position: sticky; top: 0; z-index: 30; background: var(--bg);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 10px 0 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .heat-search { flex: 1 1 220px; max-width: 320px; position: relative; }
+  .heat-search input {
+    width: 100%; padding: 8px 10px 8px 32px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-inset); color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  .heat-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); }
+  .heat-toggle[aria-pressed="true"] { background: var(--badge-info-bg); color: var(--badge-info-text); border-color: transparent; }
+  .heat-toggle .dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--text-faint); display: inline-block; }
+  .heat-toggle[aria-pressed="true"] .dot { background: var(--badge-info-text); border-color: var(--badge-info-text); }
+  .heat-match-count { font-size: 12px; color: var(--text-faint); margin-left: auto; white-space: nowrap; }
+
+  .heat-legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin: 14px 0 16px; }
+  .heat-ramp-strip { display: flex; height: 13px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .heat-ramp-strip span { width: 11px; height: 100%; }
+  .heat-gap-legend { display: inline-flex; align-items: center; gap: 6px; }
+  .heat-gap-swatch { width: 18px; height: 13px; border-radius: 3px; border: 1.5px dashed var(--text-faint); background: var(--bg-inset); }
+
+  .heat-matrix-scroll { overflow-x: auto; padding-bottom: 10px; }
+  .heat-matrix { display: flex; gap: 6px; align-items: flex-start; width: max-content; min-width: 100%; }
+  .heat-col { width: 136px; flex: 0 0 auto; }
+  .heat-col-head { position: sticky; top: 49px; z-index: 20; background: var(--bg); padding: 6px 4px 8px; border-bottom: 2px solid var(--border); }
+  .heat-col-head .name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.2; margin: 0 0 2px; min-height: 2.3em; }
+  .heat-col-head .code { font-size: 10px; color: var(--text-faint); font-family: ui-monospace, monospace; }
+  .heat-col-head .cov { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+  .heat-col-head .cov-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+  .heat-col-head .cov-bar > i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+
+  .heat-cell-stack { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+  .heat-cell {
+    border-radius: 6px; padding: 5px 7px; border: 1px solid var(--border); min-height: 40px;
+    display: flex; flex-direction: column; justify-content: center; transition: opacity 0.12s ease;
+  }
+  .heat-cell.gap { background: var(--bg-inset); border: 1.5px dashed var(--border); }
+  .heat-cell .tname { font-size: 10.7px; font-weight: 650; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .heat-cell .trow { display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px; gap: 4px; }
+  .heat-cell .tid { font-size: 9.5px; opacity: 0.75; font-family: ui-monospace, monospace; }
+  .heat-cell .tcount { font-size: 10.5px; font-weight: 700; font-family: ui-monospace, monospace; }
+  .heat-cell.gap .tname, .heat-cell.gap .tid { color: var(--text-faint); }
+  .heat-cell.gap .tcount { display: none; }
+  .heat-cell:not(.gap):focus-visible, .heat-cell:not(.gap):hover { box-shadow: var(--focus-ring); z-index: 5; }
+  .heat-cell.dimmed { opacity: 0.15; }
+
+  .heat-tooltip {
+    position: fixed; z-index: 200; max-width: 290px; background: var(--bg-elevated);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow-lg);
+    font-size: 12.5px; color: var(--text); pointer-events: none; opacity: 0; transform: translateY(4px);
+    transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+  .heat-tooltip.show { opacity: 1; transform: translateY(0); }
+  .heat-tooltip h4 { margin: 0 0 2px; font-size: 13.5px; }
+  .heat-tooltip .tt-id { color: var(--text-faint); font-size: 11px; font-family: ui-monospace, monospace; margin-bottom: 8px; }
+  .heat-tooltip .tt-count { font-size: 1.05rem; font-weight: 700; color: var(--accent); font-family: ui-monospace, monospace; }
+  .heat-tooltip .tt-count-label { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .heat-tooltip .tt-sec { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .heat-tooltip .tt-sec-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .heat-tooltip .cat-row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 2px 0; }
+  .heat-tooltip .cat-row .cn { flex: 1; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .heat-tooltip .cat-row .cv { font-weight: 650; font-family: ui-monospace, monospace; }
+
+  .heat-unavailable {
+    text-align: center; padding: 60px 20px; color: var(--text-faint); border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+  .heat-unavailable h3 { color: var(--text); margin: 0 0 6px; }
+
+  @media (max-width: 880px) {
+    .view-tabs-wrap, .heat-view { padding-left: 14px; padding-right: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-cell, .heat-tooltip { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -427,7 +552,14 @@
   </div>
 </header>
 
-<div class="layout">
+<div class="view-tabs-wrap">
+  <div class="view-tabs" role="tablist" aria-label="View">
+    <button class="view-tab active" id="view-tab-detections" role="tab" aria-selected="true">Detections</button>
+    <button class="view-tab" id="view-tab-heat" role="tab" aria-selected="false">Heat Coverage</button>
+  </div>
+</div>
+
+<div class="layout" id="detections-view">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-mobile-head">
       <span>Filters</span>
@@ -445,14 +577,54 @@
   </main>
 </div>
 
+<section class="heat-view" id="heat-view" hidden>
+  <p class="heat-intro">Every technique in the Enterprise ATT&amp;CK matrix, shaded by how many of
+    this library's detections — summed across all twelve catalogues and every platform, not just
+    one — actually map to it. Dashed cells are gaps: zero detections reference that technique today.
+    Sub-techniques roll up into their parent (T1098.001/.002/&hellip; all count toward T1098) —
+    hover or focus a cell for the breakdown.</p>
+  <div class="heat-stats" id="heat-stats"></div>
+  <div id="heat-body" hidden>
+    <div class="heat-toolbar">
+      <div class="heat-search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="heat-search" placeholder="Search technique name or ID (e.g. T1078)&hellip;" autocomplete="off">
+      </div>
+      <button class="icon-btn heat-toggle" id="heat-gaps-toggle" aria-pressed="false"><span class="dot"></span>Gaps only</button>
+      <button class="icon-btn heat-toggle" id="heat-scale-toggle" aria-pressed="false"><span class="dot"></span>Linear scale</button>
+      <span class="heat-match-count" id="heat-match-count"></span>
+    </div>
+    <div class="heat-legend">
+      <span>Fewer detections</span>
+      <span class="heat-ramp-strip" aria-hidden="true">
+        <span style="background:var(--seq-1)"></span><span style="background:var(--seq-3)"></span>
+        <span style="background:var(--seq-5)"></span><span style="background:var(--seq-7)"></span>
+        <span style="background:var(--seq-9)"></span><span style="background:var(--seq-11)"></span>
+        <span style="background:var(--seq-12)"></span>
+      </span>
+      <span>More detections</span>
+      <span class="heat-gap-legend"><span class="heat-gap-swatch" aria-hidden="true"></span>No detection maps here (gap)</span>
+    </div>
+    <div class="heat-matrix-scroll"><div class="heat-matrix" id="heat-matrix"></div></div>
+  </div>
+  <div class="heat-unavailable" id="heat-unavailable" hidden>
+    <h3>Heat Coverage data not loaded</h3>
+    <p>Serve this page over http(s) (e.g. GitHub Pages, <code>python3 -m http.server</code>) so
+      <code>data/mitre-attack-universe.json</code> can be fetched — browsers block <code>fetch()</code>
+      of local files, so this degrades gracefully when opened via <code>file://</code>.</p>
+  </div>
+</section>
+
 <div class="overlay" id="overlay" hidden>
   <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true"></div>
 </div>
 
+<div class="heat-tooltip" id="heat-tooltip" role="tooltip"></div>
+
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, and Splunk Security Content (ESCU) Windows Endpoint Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying. The Splunk ESCU catalogue is a curated subset of <a href="https://github.com/splunk/security_content" target="_blank" rel="noopener">Splunk's own security_content project</a> (Apache License 2.0) &mdash; see its entries' <code>source_url</code>/<code>source_author</code> fields for full attribution.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -467,6 +639,7 @@
 <script type="application/json" id="vcf-detections-data">__VCF_DETECTIONS_JSON__</script>
 <script type="application/json" id="splunk-detections-data">__SPLUNK_DETECTIONS_JSON__</script>
 <script type="application/json" id="ad-detections-data">__AD_DETECTIONS_JSON__</script>
+<script type="application/json" id="escu-detections-data">__ESCU_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -482,8 +655,9 @@
   var VCF_ENTRIES = JSON.parse(document.getElementById("vcf-detections-data").textContent);
   var SPLUNK_ENTRIES = JSON.parse(document.getElementById("splunk-detections-data").textContent);
   var AD_ENTRIES = JSON.parse(document.getElementById("ad-detections-data").textContent);
+  var ESCU_ENTRIES = JSON.parse(document.getElementById("escu-detections-data").textContent);
 
-  // Normalize all eleven catalogues into one array. Every original field is
+  // Normalize all twelve catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -528,6 +702,10 @@
     d._component = (d.platform || []).join(" / ");
     return d;
   })).concat(AD_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = d.component || "";
+    return d;
+  })).concat(ESCU_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = d.component || "";
     return d;
@@ -722,7 +900,7 @@
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function idBadgeOf(d) {
     if (d.vmw_id) return d.vmw_id;
-    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X|AD-AUTH|AD-KRB|AD-NTLM|AD-USER|AD-GRP|AD-COMP|AD-ACL|AD-GPO|AD-TRUST|AD-REPL|AD-DC|AD-DELEG|AD-LDAP|AD-LAPS|AD-PERSIST|AD-CRED|AD-X)-[0-9]{3}$/.test(d.id)) return d.id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X|AD-AUTH|AD-KRB|AD-NTLM|AD-USER|AD-GRP|AD-COMP|AD-ACL|AD-GPO|AD-TRUST|AD-REPL|AD-DC|AD-DELEG|AD-LDAP|AD-LAPS|AD-PERSIST|AD-CRED|AD-X|ESCU-INIT|ESCU-EXEC|ESCU-PERSIST|ESCU-PRIV|ESCU-STEALTH|ESCU-IMPAIR|ESCU-CRED|ESCU-DISC|ESCU-LM|ESCU-COLL|ESCU-C2|ESCU-EXFIL|ESCU-IMPACT|ESCU-RECON|ESCU-RESDEV)-[0-9]{3}$/.test(d.id)) return d.id;
     return null;
   }
   function cardHtml(d) {
@@ -770,7 +948,8 @@
       " Windows RDP Splunk SPL + " + VCF_ENTRIES.length +
       " VMware Cloud Foundation Splunk SPL + " + SPLUNK_ENTRIES.length +
       " Splunk Platform Splunk SPL + " + AD_ENTRIES.length +
-      " Active Directory Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " Active Directory Splunk SPL + " + ESCU_ENTRIES.length +
+      " Splunk ESCU Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     var coverageParts = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; }).map(function (p) {
       var m = MITRE_DATA[p.id].metadata;
       return m.techniques_covered_by_library + "/" + m.technique_count + " " + p.label + " ATT&CK techniques covered";
@@ -1226,6 +1405,270 @@
     }
   }
 
+  /* ---------------------------- Heat Coverage view ---------------------------- */
+  // Full ATT&CK technique universe (all platforms, rolled up to parent-technique
+  // level) is fetched at runtime from data/mitre-attack-universe.json — same
+  // "not baked into the page" convention as the ATT&CK Coverage modal's
+  // per-platform files, so it can be refreshed on a new MITRE release without
+  // a full rebuild. Per-technique *counts* are computed client-side from the
+  // DATA array already in memory (every catalogue), not stored in that file.
+  var HEAT_UNIVERSE = null;
+  var heatRendered = false;
+  var heatCells = [];                    // flat list of { el, id, name, count } for filtering
+  var heatState = { query: "", gapsOnly: false, linear: false };
+
+  // Detection id -> catalogue label, for the tooltip's "by catalogue" breakdown.
+  // IDs are unique across the whole library (tools/build.py enforces this), so
+  // this is an unambiguous lookup built once from the same per-catalogue arrays
+  // used to compose DATA above.
+  var HEAT_CATALOGUE_SOURCES = [
+    ["ESXi / Splunk", SPL_ENTRIES], ["VMware Aria Operations for Logs", ARIA_ENTRIES],
+    ["Red Hat", REDHAT_ENTRIES], ["Fortinet", FORTINET_ENTRIES], ["Dell iDRAC", IDRAC_ENTRIES],
+    ["HPE iLO", ILO_ENTRIES], ["Windows DHCP", DHCP_ENTRIES], ["Windows RDP", RDP_ENTRIES],
+    ["VMware Cloud Foundation", VCF_ENTRIES], ["Splunk Platform", SPLUNK_ENTRIES],
+    ["Active Directory", AD_ENTRIES], ["Splunk ESCU", ESCU_ENTRIES]
+  ];
+  var idToCatalogue = {};
+  HEAT_CATALOGUE_SOURCES.forEach(function (pair) {
+    pair[1].forEach(function (d) { idToCatalogue[d.id] = pair[0]; });
+  });
+
+  function loadHeatUniverse() {
+    fetch("data/mitre-attack-universe.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        HEAT_UNIVERSE = data;
+        if (!document.getElementById("heat-view").hidden) renderHeatView();
+      })
+      .catch(function () {
+        // Expected when opened via file:// (browsers block fetch of local files).
+        // renderHeatView() shows the #heat-unavailable panel if this never resolves.
+      });
+  }
+
+  // Roll every DATA entry's mitre_attack.techniques up to parent-technique
+  // level (T1098.001/.002/... all count toward T1098), once per render.
+  function computeHeatCounts() {
+    var counts = {};   // base id -> { count, by_catalogue: {}, subtechs: {} }
+    DATA.forEach(function (d) {
+      var techs = (d.mitre_attack && d.mitre_attack.techniques) || [];
+      var seenBases = {};
+      techs.forEach(function (t) {
+        if (!t || !t.id) return;
+        var base = t.id.split(".")[0];
+        var entry = counts[base] || (counts[base] = { count: 0, by_catalogue: {}, subtechs: {} });
+        entry.subtechs[t.id] = (entry.subtechs[t.id] || 0) + 1;
+        if (!seenBases[base]) {
+          seenBases[base] = true;
+          entry.count += 1;
+          var cat = idToCatalogue[d.id] || d._tool || "Unknown";
+          entry.by_catalogue[cat] = (entry.by_catalogue[cat] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }
+
+  function heatStepIndex(count, max, linear) {
+    if (!count) return -1;
+    var ratio = linear ? (count / max) : Math.sqrt(count / max);
+    var idx = Math.round(ratio * 12);
+    if (idx < 1) idx = 1;
+    if (idx > 12) idx = 12;
+    return idx;
+  }
+
+  function heatSortedList(obj, limit) {
+    var entries = Object.keys(obj).map(function (k) { return [k, obj[k]]; });
+    entries.sort(function (a, b) { return b[1] - a[1]; });
+    return limit ? entries.slice(0, limit) : entries;
+  }
+
+  function heatTooltipHtml(t) {
+    var html = "<h4>" + esc(t.name) + "</h4><div class=\"tt-id\">" + esc(t.id) + "</div>";
+    if (t.count > 0) {
+      html += "<div class=\"tt-count\">" + t.count + "</div><div class=\"tt-count-label\">detection" +
+        (t.count === 1 ? "" : "s") + " map here</div>";
+      var cats = heatSortedList(t.by_catalogue, 8);
+      if (cats.length) {
+        html += "<div class=\"tt-sec\"><div class=\"tt-sec-label\">By catalogue</div>" +
+          cats.map(function (c) {
+            return "<div class=\"cat-row\"><span class=\"cn\">" + esc(c[0]) + "</span><span class=\"cv\">" + c[1] + "</span></div>";
+          }).join("") + "</div>";
+      }
+      var subIds = Object.keys(t.subtechs || {}).filter(function (k) { return k !== t.id; });
+      if (subIds.length) {
+        html += "<div class=\"tt-sec\"><div class=\"tt-sec-label\">Sub-techniques</div>" +
+          heatSortedList(t.subtechs, 6).map(function (s) {
+            return "<div class=\"cat-row\"><span class=\"cn\">" + esc(s[0]) + "</span><span class=\"cv\">" + s[1] + "</span></div>";
+          }).join("") + "</div>";
+      }
+    } else {
+      html += "<div class=\"tt-count-label\">No detection in this library currently maps to this technique.</div>";
+    }
+    return html;
+  }
+
+  var heatTooltipEl = document.getElementById("heat-tooltip");
+  function showHeatTooltip(target, t) {
+    heatTooltipEl.innerHTML = heatTooltipHtml(t);
+    heatTooltipEl.classList.add("show");
+    var r = target.getBoundingClientRect();
+    var tw = 290, th = heatTooltipEl.offsetHeight || 150;
+    var left = r.right + 10;
+    if (left + tw > window.innerWidth - 12) left = r.left - tw - 10;
+    if (left < 8) left = 8;
+    var top = r.top;
+    if (top + th > window.innerHeight - 12) top = window.innerHeight - th - 12;
+    if (top < 8) top = 8;
+    heatTooltipEl.style.left = left + "px";
+    heatTooltipEl.style.top = top + "px";
+  }
+  function hideHeatTooltip() { heatTooltipEl.classList.remove("show"); }
+
+  function applyHeatFilters() {
+    var q = heatState.query.trim().toLowerCase();
+    var visible = 0, matched = 0;
+    heatCells.forEach(function (c) {
+      var matchesQuery = !q || c.id.toLowerCase().indexOf(q) !== -1 || c.name.toLowerCase().indexOf(q) !== -1;
+      var matchesGap = !heatState.gapsOnly || c.count === 0;
+      var show = matchesQuery && matchesGap;
+      c.el.classList.toggle("dimmed", !show);
+      if (show) { visible++; if (q) matched++; }
+    });
+    var matchCountEl = document.getElementById("heat-match-count");
+    if (q) matchCountEl.textContent = matched + " match" + (matched === 1 ? "" : "es");
+    else if (heatState.gapsOnly) matchCountEl.textContent = visible + " gap" + (visible === 1 ? "" : "s");
+    else matchCountEl.textContent = "";
+  }
+
+  function renderHeatView() {
+    var unavailableEl = document.getElementById("heat-unavailable");
+    var bodyEl = document.getElementById("heat-body");
+    if (!HEAT_UNIVERSE) {
+      unavailableEl.hidden = false;
+      bodyEl.hidden = true;
+      return;
+    }
+    unavailableEl.hidden = true;
+    bodyEl.hidden = false;
+    heatRendered = true;
+
+    var counts = computeHeatCounts();
+    var techById = {};
+    HEAT_UNIVERSE.techniques.forEach(function (t) { techById[t.id] = t; });
+
+    var maxCount = 0, coveredTotal = 0, hottest = null;
+    HEAT_UNIVERSE.techniques.forEach(function (t) {
+      var c = (counts[t.id] && counts[t.id].count) || 0;
+      if (c > maxCount) maxCount = c;
+      if (c > 0) coveredTotal++;
+      if (!hottest || c > hottest.count) hottest = { id: t.id, name: t.name, count: c };
+    });
+
+    document.getElementById("heat-stats").innerHTML =
+      '<div class="heat-stat"><div class="num">' + DATA.length.toLocaleString() + '</div><div class="lbl">Detections</div></div>' +
+      '<div class="heat-stat"><div class="num">' + coveredTotal + ' / ' + HEAT_UNIVERSE.techniques.length + '</div><div class="lbl">Techniques covered</div></div>' +
+      '<div class="heat-stat hot"><div class="num">' + esc(hottest ? hottest.id : "—") + '</div><div class="lbl" title="' +
+        esc(hottest ? hottest.name + " — " + hottest.count + " detections" : "") + '">Hottest technique</div></div>';
+
+    heatCells = [];
+    var matrixEl = document.getElementById("heat-matrix");
+    matrixEl.innerHTML = "";
+
+    HEAT_UNIVERSE.tactics.forEach(function (tac) {
+      var techs = HEAT_UNIVERSE.techniques
+        .filter(function (t) { return t.tactics.indexOf(tac.id) !== -1; })
+        .slice()
+        .sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+      var covered = techs.filter(function (t) { return counts[t.id] && counts[t.id].count > 0; }).length;
+      var pct = techs.length ? Math.round((covered / techs.length) * 100) : 0;
+
+      var colEl = document.createElement("div");
+      colEl.className = "heat-col";
+      var head = document.createElement("div");
+      head.className = "heat-col-head";
+      head.innerHTML =
+        '<div class="name">' + esc(tac.name) + '</div>' +
+        '<div class="code">' + esc(tac.id) + '</div>' +
+        '<div class="cov"><span>' + covered + '/' + techs.length + '</span>' +
+        '<span class="cov-bar"><i style="width:' + pct + '%"></i></span></div>';
+      colEl.appendChild(head);
+
+      var stack = document.createElement("div");
+      stack.className = "heat-cell-stack";
+      techs.forEach(function (t) {
+        var c = (counts[t.id] && counts[t.id].count) || 0;
+        var full = { id: t.id, name: t.name, count: c, by_catalogue: (counts[t.id] || {}).by_catalogue || {}, subtechs: (counts[t.id] || {}).subtechs || {} };
+        var isGap = c === 0;
+        var cell = document.createElement("div");
+        cell.className = "heat-cell" + (isGap ? " gap" : "");
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute("aria-label", t.id + " " + t.name + ", " + c + " detections");
+        if (!isGap) {
+          var idx = heatStepIndex(c, maxCount, heatState.linear);
+          cell.style.background = "var(--seq-" + idx + ")";
+          cell.style.borderColor = "var(--seq-" + idx + ")";
+          if (idx >= Number(getComputedStyle(document.documentElement).getPropertyValue("--seq-ink-flip") || 8)) {
+            cell.style.color = "#fff";
+          }
+        }
+        cell.innerHTML =
+          '<div class="tname">' + esc(t.name) + '</div>' +
+          '<div class="trow"><span class="tid">' + esc(t.id) + '</span>' +
+          (isGap ? '' : '<span class="tcount">' + c + '</span>') + '</div>';
+        cell.addEventListener("mouseenter", function () { showHeatTooltip(cell, full); });
+        cell.addEventListener("mouseleave", hideHeatTooltip);
+        cell.addEventListener("focus", function () { showHeatTooltip(cell, full); });
+        cell.addEventListener("blur", hideHeatTooltip);
+        stack.appendChild(cell);
+        heatCells.push({ el: cell, id: t.id, name: t.name, count: c });
+      });
+      colEl.appendChild(stack);
+      matrixEl.appendChild(colEl);
+    });
+
+    applyHeatFilters();
+  }
+
+  document.getElementById("heat-search").addEventListener("input", function (e) {
+    heatState.query = e.target.value;
+    applyHeatFilters();
+  });
+  var heatGapsToggle = document.getElementById("heat-gaps-toggle");
+  heatGapsToggle.addEventListener("click", function () {
+    heatState.gapsOnly = !heatState.gapsOnly;
+    heatGapsToggle.setAttribute("aria-pressed", String(heatState.gapsOnly));
+    applyHeatFilters();
+  });
+  var heatScaleToggle = document.getElementById("heat-scale-toggle");
+  heatScaleToggle.addEventListener("click", function () {
+    heatState.linear = !heatState.linear;
+    heatScaleToggle.setAttribute("aria-pressed", String(heatState.linear));
+    heatScaleToggle.lastChild.textContent = heatState.linear ? "Linear scale" : "Square-root scale";
+    renderHeatView();
+  });
+
+  /* ---------------------------- View tabs ---------------------------- */
+  var viewTabDetections = document.getElementById("view-tab-detections");
+  var viewTabHeat = document.getElementById("view-tab-heat");
+  var detectionsViewEl = document.getElementById("detections-view");
+  var heatViewEl = document.getElementById("heat-view");
+  function switchView(view) {
+    var toHeat = view === "heat";
+    detectionsViewEl.hidden = toHeat;
+    heatViewEl.hidden = !toHeat;
+    viewTabDetections.classList.toggle("active", !toHeat);
+    viewTabDetections.setAttribute("aria-selected", String(!toHeat));
+    viewTabHeat.classList.toggle("active", toHeat);
+    viewTabHeat.setAttribute("aria-selected", String(toHeat));
+    document.body.classList.toggle("heat-active", toHeat);
+    if (toHeat && !heatRendered) renderHeatView();
+  }
+  viewTabDetections.addEventListener("click", function () { switchView("detections"); });
+  viewTabHeat.addEventListener("click", function () { switchView("heat"); });
+
   /* ---------------------------- Render / bootstrap ---------------------------- */
   function render() {
     renderSidebar();
@@ -1235,6 +1678,7 @@
   }
   render();
   loadMitreCoverage();
+  loadHeatUniverse();
 
   var initialId = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
   if (initialId && findById(initialId)) openDetail(initialId);
