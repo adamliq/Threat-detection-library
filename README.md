@@ -13,7 +13,7 @@ component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
 as JSON.
 
-The repo holds eleven catalogues of detection content, spanning two
+The repo holds twelve catalogues of detection content, spanning two
 different query languages and sixteen platform families — combined
 into one filterable view:
 
@@ -30,17 +30,18 @@ into one filterable view:
 | VMware Cloud Foundation / Splunk | Splunk SPL | SDDC Manager, NSX, vSAN encryption, VCF Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, Tanzu/Kubernetes, plus cross-platform (`VCF-X-###`) correlations | 162 |
 | Splunk Platform / Splunk | Splunk SPL | Attacks against, abuse of, or suspicious administrative activity within **Splunk itself** — Splunk Cloud, Splunk Enterprise, Enterprise Security, SOAR, forwarders, and the management tier — plus cross-component (`SPL-X-###`) attack-path correlations | 337 |
 | Active Directory / Splunk | Splunk SPL | Active Directory Domain Services as Tier-0 identity infrastructure — Kerberos, NTLM, LDAP, Group Policy, trusts/SIDHistory, privileged groups/AdminSDHolder, delegation/RBCD, AD CS, LAPS/gMSA, domain controller integrity, credential access, plus cross-platform (`AD-X-###`) identity-correlation chains | 332 |
+| Splunk ESCU (security_content) / Splunk | Splunk SPL | Curated subset of Splunk's own official Windows-endpoint detections (`splunk/security_content`) — Sysmon/EDR-based TTP coverage spanning the full MITRE kill chain, complementary to (not duplicative of) the AD/RDP/DHCP catalogues | 265 |
 
-`index.html` is the **combined library** — all 1870 detections from all
-eleven catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 2135 detections from all
+twelve catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
 SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, VCF,
-Splunk Platform, and Active Directory entries, an Aria search query block
-for Aria entries) plus a CLI/API reference, auditd rule set, or risk/
-maturity/CIM metadata where present.
+Splunk Platform, Active Directory, and Splunk ESCU entries, an Aria
+search query block for Aria entries) plus a CLI/API reference, auditd
+rule set, or risk/maturity/CIM metadata where present.
 
 ## Batch 1: VMware ESXi
 
@@ -644,6 +645,75 @@ requested namespaces and every named attack-path chain has dedicated,
 MITRE-validated coverage; padding toward 500 would have meant inventing
 Windows Event IDs or AD schema attributes that don't exist.
 
+## Splunk Security Content (ESCU) — Windows Endpoint Catalogue
+
+`data/splunk-escu-detections.json` is a twelfth catalogue, and a
+structurally different one from the other eleven: it is not authored for
+this project. It's a curated, schema-converted subset of 265 Windows-scoped
+detections from Splunk's own official, Apache-2.0-licensed
+[`security_content`](https://github.com/splunk/security_content) project
+(also known as Splunk Enterprise Security Content Updates, or ESCU) —
+production SPL that ships in Splunk's own Splunkbase app, not this
+library's own analysis.
+
+| Namespace | Primary MITRE tactic | Detections |
+|---|---|---|
+| `ESCU-IMPAIR-###` | Defense Impairment | 30 |
+| `ESCU-STEALTH-###` | Stealth | 30 |
+| `ESCU-EXEC-###` | Execution | 25 |
+| `ESCU-CRED-###` | Credential Access | 22 |
+| `ESCU-DISC-###` | Discovery | 22 |
+| `ESCU-PERSIST-###` | Persistence | 20 |
+| `ESCU-LM-###` | Lateral Movement | 18 |
+| `ESCU-PRIV-###` | Privilege Escalation | 18 |
+| `ESCU-IMPACT-###` | Impact | 18 |
+| `ESCU-INIT-###` | Initial Access | 15 |
+| `ESCU-C2-###` | Command and Control | 15 |
+| `ESCU-COLL-###` | Collection | 12 |
+| `ESCU-EXFIL-###` | Exfiltration | 8 |
+| `ESCU-RECON-###` | Reconnaissance | 8 |
+| `ESCU-RESDEV-###` | Resource Development | 4 |
+
+**Why this exists alongside the AD/RDP/DHCP catalogues rather than
+duplicating them:** the existing Windows-scoped catalogues in this library
+detect from the *domain controller's* perspective (Security event log,
+Directory Service Access auditing) — Kerberos ticket anomalies, LDAP binds,
+GPO tampering, and so on. ESCU's Windows endpoint content detects from the
+*host's* perspective (Sysmon, EDR telemetry, process execution) —
+credential-dumping tools actually running, LOLBins being abused, C2
+beacons on the wire. A targeted content check against every candidate file
+(searching for Kerberoasting/DCSync/Golden-Ticket/Silver-Ticket/AS-REP/
+krbtgt overlap) found only 16 genuinely duplicative detections out of
+~1,250 candidates, which were excluded from the curated set; the rest is
+complementary telemetry, not a restatement of the AD catalogue.
+
+**Curation methodology:** of the ~1,250 Windows-scoped files in
+`security_content/detections/endpoint`, this catalogue keeps only
+`status: production` content (excluding `experimental`), removes the 16
+AD-overlap detections above, then scores and caps per primary MITRE
+tactic so the result covers the full kill chain rather than skewing toward
+whichever tactic Splunk's own contributors happened to write the most
+detections for. See
+[`docs/splunk-escu-detection-library.md`](docs/splunk-escu-detection-library.md)
+for the full methodology, severity/confidence/false-positive distributions,
+and the "SPL notes" section explaining why this catalogue's SPL looks
+different from the rest of the library's (`security_content_summariesonly`/
+`security_content_ctime` macros, `` `<name>_filter` `` macros, and
+`tstats`-against-`datamodel=Endpoint.Processes` queries all require the
+ESCU Splunkbase app or an equivalent CIM-accelerated Endpoint data model —
+see the Disclaimer section below).
+
+Every entry follows `schema/splunk-escu-detection.schema.json`, a superset
+of this library's usual detection fields with dedicated provenance fields
+(`source_id`, `source_url`, `source_version`, `source_author`,
+`source_creation_date`, `analytic_story[]`) tracing every entry back to its
+original upstream file. Severity, confidence, and risk-scoring are
+**derived, not copied** — the upstream project doesn't use this library's
+1–5×1–5×1–5 model, so these fields were computed from the source's `type`
+field and primary MITRE tactic, then spot-checked; treat them as this
+library's own risk assessment layered on top of Splunk's detection logic,
+not something Splunk itself asserts.
+
 ## Repository layout
 
 ```
@@ -658,6 +728,7 @@ data/rdp-detections.json       Canonical source of truth for the Windows RDP cat
 data/vcf-detections.json       Canonical source of truth for the VMware Cloud Foundation catalogue.
 data/splunk-detections.json    Canonical source of truth for the Splunk Platform (self-protection) catalogue.
 data/ad-detections.json        Canonical source of truth for the Active Directory catalogue.
+data/splunk-escu-detections.json  Curated, schema-converted subset of splunk/security_content's Windows endpoint detections.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -671,6 +742,7 @@ docs/rdp-detection-library.md  Coverage matrices, Priority Detection Packs, and 
 docs/vcf-detection-library.md  Coverage matrices, Priority Detection Packs, VCF Attack-Path Matrix, and gap analysis for the VMware Cloud Foundation catalogue.
 docs/splunk-platform-detection-library.md  Coverage matrices, Cloud-vs-Enterprise matrix, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Splunk Platform catalogue.
 docs/ad-detection-library.md  Coverage matrices, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Active Directory catalogue.
+docs/splunk-escu-detection-library.md  Curation methodology, coverage matrices, and attribution/license notes for the Splunk ESCU catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -682,9 +754,10 @@ schema/rdp-detection.schema.json  JSON Schema for data/rdp-detections.json entri
 schema/vcf-detection.schema.json  JSON Schema for data/vcf-detections.json entries.
 schema/splunk-platform-detection.schema.json  JSON Schema for data/splunk-detections.json entries.
 schema/ad-detection.schema.json  JSON Schema for data/ad-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all eleven data files.
-index.html                     Generated: template + all eleven data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all eleven data/*.json files.
+schema/splunk-escu-detection.schema.json  JSON Schema for data/splunk-escu-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all twelve data files.
+index.html                     Generated: template + all twelve data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all twelve data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
@@ -779,30 +852,37 @@ The key fields:
 
 ### Schema differences across catalogues
 
-The eleven catalogues do **not** share one schema — each has its own file
+The twelve catalogues do **not** share one schema — each has its own file
 under `schema/`, and the combined `index.html` view normalizes what it can
 (`_component`, `_tool`) but does not paper over every field difference.
-Two are worth knowing about if you're consuming this data programmatically
+Three are worth knowing about if you're consuming this data programmatically
 rather than through the UI:
 
 - **False-positive guidance is represented two different ways.** ESXi and
   Aria use `known_false_positives` — free-text narrative guidance (e.g.
   "baseline your backup service accounts before enabling this in
-  production"). The other nine catalogues (Red Hat, Fortinet, Dell iDRAC,
+  production"). The other ten catalogues (Red Hat, Fortinet, Dell iDRAC,
   HPE iLO, Windows DHCP, Windows RDP, VCF, Splunk Platform, Active
-  Directory — 1,674 entries) instead use `false_positive_rating`, a
-  three-value category (`Low` / `Medium` / `High`) plus prose guidance
-  spread across `tuning_guidance` and `investigation_steps[]`. Don't
-  assume `known_false_positives` is present outside ESXi/Aria, or that
-  `false_positive_rating` exists on those two.
+  Directory, Splunk ESCU — 1,939 entries) instead use
+  `false_positive_rating`, a three-value category (`Low` / `Medium` /
+  `High`) plus prose guidance spread across `tuning_guidance` and
+  `investigation_steps[]`. Don't assume `known_false_positives` is present
+  outside ESXi/Aria, or that `false_positive_rating` exists on those two.
 - **`type` / `status` / `method` are effectively ESXi/Aria-only.** ESXi
   populates all three; Aria populates `type`/`status` but not `method`;
-  none of the other nine catalogues populate any of the three (they use
+  none of the other ten catalogues populate any of the three (they use
   `detection_type` and `detection_maturity` instead, which serve a similar
   role but aren't the same field or vocabulary). Filtering the *combined*
   view by these fields will only ever surface ESXi/Aria results — this is
   expected, not a bug, but worth knowing before building a facet or export
   on top of them.
+- **The Splunk ESCU catalogue's `detection_type` vocabulary is its own.**
+  Every other catalogue that populates `detection_type` uses this
+  library's locally-defined values; ESCU instead preserves the upstream
+  project's own `type` field verbatim (`TTP` / `Anomaly` / `Hunting` /
+  `Correlation`) rather than remapping it, so a `detection_type` facet
+  spanning ESCU plus the rest of the library will show two different
+  vocabularies side by side.
 
 `query field` (`spl` vs `aria_query`) is the one difference that's
 intentional and not drift — Aria genuinely uses a different query language
@@ -834,15 +914,17 @@ of these at high volume in production, not something to fix reflexively.
    `data/ilo-detections.json` (HPE iLO), `data/dhcp-detections.json`
    (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP),
    `data/vcf-detections.json` (VMware Cloud Foundation),
-   `data/splunk-detections.json` (Splunk Platform self-protection), or
-   `data/ad-detections.json` (Active Directory), validating against the
-   matching schema file in `schema/`. Detection IDs must be unique
-   **across all eleven files**, not just within one —
-   `tools/build.py` enforces this at build time (see the `HREDFISH-###`
-   vs. `REDFISH-###` note in the HPE iLO section above for why this
-   matters with cross-vendor standards like Redfish).
+   `data/splunk-detections.json` (Splunk Platform self-protection),
+   `data/ad-detections.json` (Active Directory), or
+   `data/splunk-escu-detections.json` (Splunk ESCU — see the note below
+   before adding to this one), validating against the matching schema
+   file in `schema/`. Detection IDs must be unique **across all twelve
+   files**, not just within one — `tools/build.py` enforces this at
+   build time (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE
+   iLO section above for why this matters with cross-vendor standards
+   like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all eleven `__..._JSON__`
+   styling), edit `index.template.html` — leave all twelve `__..._JSON__`
    markers in place.
 3. Regenerate the static page:
 
@@ -851,6 +933,16 @@ of these at high volume in production, not something to fix reflexively.
    ```
 
 4. Commit the data file(s) and the regenerated `index.html`.
+
+**Note on `data/splunk-escu-detections.json` specifically:** unlike the
+other eleven catalogues, this one is sourced content, not hand-authored —
+every entry's `source_id`/`source_url`/`source_version`/`source_author`
+fields trace it back to a specific file in `splunk/security_content`. Don't
+hand-add entries to this file that don't have real upstream provenance;
+pull a new batch from `splunk/security_content` and run it back through the
+same curation/conversion approach documented in
+[`docs/splunk-escu-detection-library.md`](docs/splunk-escu-detection-library.md)
+instead.
 
 ## Disclaimer
 
@@ -986,4 +1078,26 @@ catalogue's lookups (`tier0_privileged_accounts.csv`,
 referenced by name in `tuning_guidance` fields) are shipped as actual
 files — populate them from your own asset inventory or identity-
 governance platform before relying on the detections that depend on them
-(see `docs/ad-detection-library.md` §12 for the full list).
+(see `docs/ad-detection-library.md` §12 for the full list). The Splunk
+ESCU catalogue is different from the rest of this library in one important
+way: it is a curated subset of **Splunk's own** `security_content` project
+(Apache License 2.0), not content authored for this repository — this
+library did not modify the underlying detection logic, only added the
+provenance/schema/risk-scoring layer described in
+`docs/splunk-escu-detection-library.md`; see each entry's
+`source_id`/`source_url`/`source_author` fields for full attribution to
+the original author and file. Its SPL is Splunk's actual production
+search code, not this library's usual house style, and depends on the
+`security_content`/ESCU Splunkbase app for several macros
+(`` `security_content_summariesonly` ``, `` `security_content_ctime(...)` ``,
+`` `drop_dm_object_name(...)` ``, and per-detection `` `<name>_filter` ``
+macros) — searches using these macros will not run as-is without that app
+installed, or without manually resolving each macro yourself. A large
+share of entries also use `| tstats` against the CIM-accelerated
+`Endpoint.Processes` data model rather than a raw index search, so they
+additionally require the Splunk Common Information Model add-on with
+Endpoint data model acceleration enabled; see each entry's
+`cim_data_model`/`telemetry_requirement` fields and
+`docs/splunk-escu-detection-library.md` for the full dependency list
+before assuming a given ESCU detection will run unmodified in your
+environment.

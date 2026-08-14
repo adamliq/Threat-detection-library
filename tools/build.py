@@ -5,17 +5,18 @@ data/aria-detections.json + data/redhat-detections.json +
 data/fortinet-detections.json + data/idrac-detections.json +
 data/ilo-detections.json + data/dhcp-detections.json +
 data/rdp-detections.json + data/vcf-detections.json +
-data/splunk-detections.json + data/ad-detections.json.
+data/splunk-detections.json + data/ad-detections.json +
+data/splunk-escu-detections.json.
 
 index.html is the combined library: it embeds the ESXi/Splunk SPL, VMware
 Aria Operations for Logs, Red Hat (RHEL/IdM/IPA/FreeIPA/AAP/Satellite),
 Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server,
 Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &
-Splunk Enterprise self-protection), and Active Directory Domain Services
-Splunk SPL catalogues and lets you filter across all eleven. Run this
-after editing any data file (adding a new batch, fixing a field, etc.)
-to regenerate the static, self-contained index.html that GitHub Pages /
-file:// serves.
+Splunk Enterprise self-protection), Active Directory Domain Services, and
+Splunk Security Content (ESCU) Windows Endpoint Splunk SPL catalogues and
+lets you filter across all twelve. Run this after editing any data file
+(adding a new batch, fixing a field, etc.) to regenerate the static,
+self-contained index.html that GitHub Pages / file:// serves.
 
 Usage:
     python3 tools/build.py
@@ -36,6 +37,7 @@ RDP_DATA_FILE = ROOT / "data" / "rdp-detections.json"
 VCF_DATA_FILE = ROOT / "data" / "vcf-detections.json"
 SPLUNK_DATA_FILE = ROOT / "data" / "splunk-detections.json"
 AD_DATA_FILE = ROOT / "data" / "ad-detections.json"
+ESCU_DATA_FILE = ROOT / "data" / "splunk-escu-detections.json"
 TEMPLATE_FILE = ROOT / "index.template.html"
 OUTPUT_FILE = ROOT / "index.html"
 MARKER = "__DETECTIONS_JSON__"
@@ -49,6 +51,7 @@ RDP_MARKER = "__RDP_DETECTIONS_JSON__"
 VCF_MARKER = "__VCF_DETECTIONS_JSON__"
 SPLUNK_MARKER = "__SPLUNK_DETECTIONS_JSON__"
 AD_MARKER = "__AD_DETECTIONS_JSON__"
+ESCU_MARKER = "__ESCU_DETECTIONS_JSON__"
 
 
 def check_ids(data, source_name):
@@ -100,10 +103,14 @@ def main():
     ad_data = json.loads(AD_DATA_FILE.read_text(encoding="utf-8"))
     check_ids(ad_data, AD_DATA_FILE.name)
 
+    escu_data = json.loads(ESCU_DATA_FILE.read_text(encoding="utf-8"))
+    check_ids(escu_data, ESCU_DATA_FILE.name)
+
     all_ids = [
         d["id"]
         for d in data + aria_data + redhat_data + fortinet_data + idrac_data
         + ilo_data + dhcp_data + rdp_data + vcf_data + splunk_data + ad_data
+        + escu_data
     ]
     if len(all_ids) != len(set(all_ids)):
         seen = set()
@@ -114,7 +121,7 @@ def main():
     for marker in (
         MARKER, ARIA_MARKER, REDHAT_MARKER, FORTINET_MARKER, IDRAC_MARKER,
         ILO_MARKER, DHCP_MARKER, RDP_MARKER, VCF_MARKER, SPLUNK_MARKER,
-        AD_MARKER,
+        AD_MARKER, ESCU_MARKER,
     ):
         if marker not in template:
             sys.exit(f"Marker {marker} not found in {TEMPLATE_FILE.name}")
@@ -131,6 +138,7 @@ def main():
         .replace(VCF_MARKER, to_payload(vcf_data))
         .replace(SPLUNK_MARKER, to_payload(splunk_data))
         .replace(AD_MARKER, to_payload(ad_data))
+        .replace(ESCU_MARKER, to_payload(escu_data))
     )
     OUTPUT_FILE.write_text(output, encoding="utf-8")
     print(
@@ -138,7 +146,8 @@ def main():
         f"{len(aria_data)} Aria + {len(redhat_data)} Red Hat + {len(fortinet_data)} Fortinet + "
         f"{len(idrac_data)} Dell iDRAC + {len(ilo_data)} HPE iLO + {len(dhcp_data)} Windows DHCP + "
         f"{len(rdp_data)} Windows RDP + {len(vcf_data)} VMware Cloud Foundation + "
-        f"{len(splunk_data)} Splunk Platform + {len(ad_data)} Active Directory detection(s)."
+        f"{len(splunk_data)} Splunk Platform + {len(ad_data)} Active Directory + "
+        f"{len(escu_data)} Splunk ESCU detection(s)."
     )
 
 

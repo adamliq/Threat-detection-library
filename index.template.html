@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threat Detection Library</title>
-<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
+<meta name="description" content="A searchable, self-contained library combining ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, and Splunk Security Content (ESCU) Windows Endpoint Splunk SPL threat detections: technique, data sources, detection logic, MITRE ATT&amp;CK mapping, false positives, and references, filterable by catalogue/tool.">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -452,7 +452,7 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), and Active Directory Domain Services Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, and Splunk Security Content (ESCU) Windows Endpoint Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying. The Splunk ESCU catalogue is a curated subset of <a href="https://github.com/splunk/security_content" target="_blank" rel="noopener">Splunk's own security_content project</a> (Apache License 2.0) &mdash; see its entries' <code>source_url</code>/<code>source_author</code> fields for full attribution.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -467,6 +467,7 @@
 <script type="application/json" id="vcf-detections-data">__VCF_DETECTIONS_JSON__</script>
 <script type="application/json" id="splunk-detections-data">__SPLUNK_DETECTIONS_JSON__</script>
 <script type="application/json" id="ad-detections-data">__AD_DETECTIONS_JSON__</script>
+<script type="application/json" id="escu-detections-data">__ESCU_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -482,8 +483,9 @@
   var VCF_ENTRIES = JSON.parse(document.getElementById("vcf-detections-data").textContent);
   var SPLUNK_ENTRIES = JSON.parse(document.getElementById("splunk-detections-data").textContent);
   var AD_ENTRIES = JSON.parse(document.getElementById("ad-detections-data").textContent);
+  var ESCU_ENTRIES = JSON.parse(document.getElementById("escu-detections-data").textContent);
 
-  // Normalize all eleven catalogues into one array. Every original field is
+  // Normalize all twelve catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -528,6 +530,10 @@
     d._component = (d.platform || []).join(" / ");
     return d;
   })).concat(AD_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = d.component || "";
+    return d;
+  })).concat(ESCU_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = d.component || "";
     return d;
@@ -722,7 +728,7 @@
   var TOOL_CLASS = { "Splunk SPL": "tool-splunk", "VMware Aria Operations for Logs": "tool-aria" };
   function idBadgeOf(d) {
     if (d.vmw_id) return d.vmw_id;
-    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X|AD-AUTH|AD-KRB|AD-NTLM|AD-USER|AD-GRP|AD-COMP|AD-ACL|AD-GPO|AD-TRUST|AD-REPL|AD-DC|AD-DELEG|AD-LDAP|AD-LAPS|AD-PERSIST|AD-CRED|AD-X)-[0-9]{3}$/.test(d.id)) return d.id;
+    if (/^(RHEL|IPA|AAP|SAT|RH-X|FGT|FMG|FAZ|FAC|FCT|EMS|FEDR|FWB|FML|FPX|FSB|FNT-X|IDRAC|LC|REDFISH|IPMI|RACADM|DELL-X|ILO|RC|VMEDIA|FW|HREDFISH|IML|AHS|ONEVIEW|HPE-X|DHCP-AUD|DHCP-AD|DHCP-DNS|DHCP-FO|DHCP-PS|DHCP-NET|DHCP-X|DHCP|RDP-AUTH|RDP-TS|RDP-GW|RDP-CFG|RDP-NET|RDP-PROC|RDP-X|RDP|NSX|VSAN|OPS|LOGS|AUTO|SALT|HCX|K8S|VCF-X|VCF|SPL-AUTH|SPL-RBAC|SPL-SEARCH|SPL-KO|SPL-APP|SPL-API|SPL-HEC|SPL-DATA|SPL-FWD|SPL-DS|SPL-IDX|SPL-SH|SPL-CM|SPL-CLOUD|SPL-ENT|SPL-ES|SPL-KV|SPL-CONF|SPL-INT|SPL-X|AD-AUTH|AD-KRB|AD-NTLM|AD-USER|AD-GRP|AD-COMP|AD-ACL|AD-GPO|AD-TRUST|AD-REPL|AD-DC|AD-DELEG|AD-LDAP|AD-LAPS|AD-PERSIST|AD-CRED|AD-X|ESCU-INIT|ESCU-EXEC|ESCU-PERSIST|ESCU-PRIV|ESCU-STEALTH|ESCU-IMPAIR|ESCU-CRED|ESCU-DISC|ESCU-LM|ESCU-COLL|ESCU-C2|ESCU-EXFIL|ESCU-IMPACT|ESCU-RECON|ESCU-RESDEV)-[0-9]{3}$/.test(d.id)) return d.id;
     return null;
   }
   function cardHtml(d) {
@@ -770,7 +776,8 @@
       " Windows RDP Splunk SPL + " + VCF_ENTRIES.length +
       " VMware Cloud Foundation Splunk SPL + " + SPLUNK_ENTRIES.length +
       " Splunk Platform Splunk SPL + " + AD_ENTRIES.length +
-      " Active Directory Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " Active Directory Splunk SPL + " + ESCU_ENTRIES.length +
+      " Splunk ESCU Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     var coverageParts = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; }).map(function (p) {
       var m = MITRE_DATA[p.id].metadata;
       return m.techniques_covered_by_library + "/" + m.technique_count + " " + p.label + " ATT&CK techniques covered";
