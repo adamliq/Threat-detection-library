@@ -11,7 +11,9 @@ GitHub Pages) — there's no build step or server dependency to browse it.
 Search, filter by catalogue/tool, MITRE ATT&CK tactic, severity, method,
 component, or data source, open any card for the full write-up, copy the
 search/query/CLI reference, and export the current (filtered) result set
-as JSON.
+as JSON. A second top-level tab, **Heat Coverage**, shows the whole
+library as an ATT&CK technique × tactic matrix shaded by detection density
+— see [Heat Coverage tab](#heat-coverage-tab) below.
 
 The repo holds twelve catalogues of detection content, spanning two
 different query languages and sixteen platform families — combined
@@ -730,6 +732,8 @@ data/splunk-detections.json    Canonical source of truth for the Splunk Platform
 data/ad-detections.json        Canonical source of truth for the Active Directory catalogue.
 data/splunk-escu-detections.json  Curated, schema-converted subset of splunk/security_content's Windows endpoint detections.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
+data/mitre-attack-windows.json  MITRE ATT&CK Windows techniques + official Detection Analytics, coverage computed across the AD/RDP/DHCP catalogues.
+data/mitre-attack-universe.json  Full ATT&CK Enterprise technique/tactic universe (all platforms, parent-technique level) backing the Heat Coverage tab.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
 docs/redhat-detection-library.md  Coverage matrices, Priority Detection Packs, and field-schema reference for the Red Hat catalogue.
@@ -758,7 +762,8 @@ schema/splunk-escu-detection.schema.json  JSON Schema for data/splunk-escu-detec
 index.template.html            Combined-library page shell (CSS/JS) with markers for all twelve data files.
 index.html                     Generated: template + all twelve data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
 tools/build.py                 Regenerates index.html from all twelve data/*.json files.
-tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-esxi.json from the official MITRE ATT&CK dataset.
+tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-<platform>.json from the official MITRE ATT&CK dataset.
+tools/fetch_mitre_universe.py  Regenerates data/mitre-attack-universe.json (the full technique/tactic universe behind the Heat Coverage tab).
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
 ```
 
@@ -824,6 +829,49 @@ script with `--platform Linux --detections data/redhat-detections.json`,
 then add `{ id: "Linux", label: "Linux", file: "data/mitre-attack-linux.json" }`
 to the `COVERAGE_PLATFORMS` array near the top of the MITRE coverage
 section in `index.template.html` and rebuild.
+
+### Heat Coverage tab
+
+Alongside **Detections**, the page's second top-level tab is **Heat
+Coverage**: a technique × tactic matrix in the style of ATT&CK Navigator,
+except each cell is shaded by how many of this library's detections —
+summed across all twelve catalogues and every platform, not scoped to one
+the way the ATT&CK Coverage modal is — actually reference that technique.
+It answers a different question than the coverage modal: not "does MITRE
+have an official analytic for this," but "how much of *this library's own*
+detection weight sits on each technique," so you can see at a glance where
+coverage is deep (Indicator Removal, Account Manipulation, Valid Accounts —
+unsurprising, since those are this library's documented cross-catalogue
+patterns) versus where it's a single detection or a true gap.
+
+- **Universe**: every non-deprecated Enterprise ATT&CK technique across
+  *all* platforms (not filtered to this library's actual scope), rolled up
+  to parent-technique level (sub-techniques fold into their parent — hover
+  or focus a cell to see the sub-technique and per-catalogue breakdown).
+  Loaded at runtime from `data/mitre-attack-universe.json`, same
+  not-baked-into-the-page convention as the coverage modal's per-platform
+  files — regenerate it after a new MITRE ATT&CK release with
+  `python3 tools/fetch_mitre_universe.py`.
+- **Counts**: computed client-side from the `DATA` array already in memory
+  (every catalogue), not stored in the universe file — so the tab always
+  reflects the current data files with no extra regeneration step when a
+  batch changes.
+- **Color scale**: a 13-step sequential ramp built from the page's own
+  `--accent` (the crimson/coral used everywhere else in the UI) rather than
+  an unrelated hue — the hottest step is the literal `--accent` value in
+  each theme. Defaults to a square-root transform so an outlier like T1070
+  (236 detections, mostly this library's `T1562`→`T1070` substitution
+  pattern) doesn't wash every other cell to near-white; toggle "Linear
+  scale" for raw proportional intensity. Gap cells (zero detections) get a
+  dashed border instead of a color, so an absence of coverage reads as an
+  absence of fill, not just a lighter shade.
+- Search by technique name or ID, or toggle "Gaps only" to isolate the
+  dashed cells.
+
+Because a chunk of the full ATT&CK universe is techniques with no
+realistic footprint on this library's actual scope (mobile, cloud-native
+SaaS, etc.), treat a dashed cell as "worth checking," not automatically
+"should build a detection" — the tab's own intro text says the same.
 
 ## Detection schema
 
