@@ -1,6 +1,6 @@
 # Splunk Security Content (ESCU) Catalogue
 
-Companion index to `data/splunk-escu-detections.json` (556 Splunk SPL
+Companion index to `data/splunk-escu-detections.json` (839 Splunk SPL
 detections). Unlike every other catalogue in this library, **these
 detections are not authored for this project.** They are a curated,
 schema-converted subset of detections from Splunk's own official
@@ -9,8 +9,8 @@ schema-converted subset of detections from Splunk's own official
 Apache-2.0-licensed, actively maintained by Splunk's threat research team,
 and running in production Splunk ES deployments today.
 
-The catalogue draws from three upstream source directories, brought in as
-four separate batches (`detections/endpoint` contributed two: Windows,
+The catalogue draws from four upstream source directories, brought in as
+five separate batches (`detections/endpoint` contributed two: Windows,
 then Linux):
 
 - **`detections/endpoint`, Windows-scoped** (265 entries,
@@ -30,6 +30,11 @@ then Linux):
   `component: "Linux"`) — Sysmon-for-Linux and Linux auditd host
   telemetry. See "The Linux batch: all of `detections/endpoint`'s
   `linux_*` files" below.
+- **`detections/cloud`** (283 entries, `component: "AWS"`, `"Azure"`,
+  `"Microsoft 365"`, `"Google Cloud Platform"`, `"Google Workspace"`,
+  `"Kubernetes"`, `"GitHub"`, or generic `"Cloud"`) — cloud-identity and
+  cloud-infrastructure control-plane/audit telemetry. See "The cloud
+  batch: a genuinely new platform for this library" below.
 
 Every detection ID below is a stable reference into
 `data/splunk-escu-detections.json` — look it up by `id` for the full SPL,
@@ -252,42 +257,83 @@ deploying both catalogues, expect some genuine duplicate coverage in the
 auditd-based Linux/RHEL space and plan detection-rule deconfliction
 accordingly — this library did not attempt to deconflict it for you.
 
+## The cloud batch: a genuinely new platform for this library
+
+A fifth batch (283 entries) takes every qualifying file from
+`security_content`'s `detections/cloud` directory — 283 of 318, filtered
+by the same two hard bars as the network and Linux batches: `status:
+production` (33 `experimental` excluded), and a non-empty, validated
+MITRE technique mapping (2 more production files excluded —
+`cloud_compute_instance_created_with_previously_unseen_image.yml` and
+`detect_spike_in_aws_security_hub_alerts_for_ec2_instance.yml` — both
+carry `mitre_attack_id: []`). All 70 distinct technique IDs used
+validated against the current MITRE ATT&CK Enterprise STIX corpus with
+zero invalid IDs.
+
+**Unlike the Linux batch, this is genuinely new territory for the
+library — no overlap caveat is needed.** No existing catalogue in this
+repo covers AWS, Azure, Microsoft 365/Entra ID, Google Cloud Platform,
+Google Workspace, Kubernetes, or GitHub as an identity/infrastructure
+platform; the closest thing, the Splunk Platform catalogue's
+`SPL-CLOUD-###` namespace, is scoped narrowly to Splunk Cloud's own ACS
+API and maintenance events, not general-purpose cloud-provider auditing.
+`component` reflects the platform by filename prefix: `AWS` (84, both
+`aws_*` and `asl_aws_*` — the latter normalized via Amazon Security
+Lake), `Microsoft 365` (84, `o365_*` and `microsoft_*` — the latter
+Intune device-management events), `Azure` (50), generic `Cloud` (19 —
+vendor-agnostic multi-cloud behavioral anomalies plus a few CI/CD/DevSecOps
+entries), `GitHub` (18), `Kubernetes` (18), `Google Cloud Platform` (6),
+`Google Workspace` (4).
+
+**Search-cost profile flips for this batch.** Every prior batch (Windows,
+ESXi, network, Linux) skewed toward `Low cost` `| tstats`-against-CIM
+searches; this one skews the other way — cloud-provider audit-log schemas
+(CloudTrail, Azure AD sign-in logs, the O365 Unified Audit Log,
+Kubernetes audit events) don't map onto Splunk's CIM data models the way
+endpoint/network telemetry does, so most of these entries are raw
+`search`/`stats` pipelines against the provider's native event schema.
+See the updated Detection type/maturity/search-cost table below.
+
 ## Namespace coverage matrix
 
 | Namespace | Primary MITRE tactic | Detections |
 |---|---|---:|
-| `ESCU-IMPAIR-###` | Defense Impairment (TA0112) | 52 |
-| `ESCU-STEALTH-###` | Stealth (TA0005 — MITRE's current name for the classic "Defense Evasion" tactic) | 56 |
-| `ESCU-EXEC-###` | Execution | 61 |
-| `ESCU-CRED-###` | Credential Access | 35 |
-| `ESCU-DISC-###` | Discovery | 40 |
-| `ESCU-PERSIST-###` | Persistence | 44 |
-| `ESCU-LM-###` | Lateral Movement | 29 |
+| `ESCU-IMPAIR-###` | Defense Impairment (TA0112) | 100 |
+| `ESCU-STEALTH-###` | Stealth (TA0005 — MITRE's current name for the classic "Defense Evasion" tactic) | 91 |
+| `ESCU-EXEC-###` | Execution | 82 |
+| `ESCU-CRED-###` | Credential Access | 78 |
+| `ESCU-DISC-###` | Discovery | 56 |
+| `ESCU-PERSIST-###` | Persistence | 99 |
+| `ESCU-LM-###` | Lateral Movement | 30 |
 | `ESCU-PRIV-###` | Privilege Escalation | 78 |
-| `ESCU-IMPACT-###` | Impact | 33 |
-| `ESCU-INIT-###` | Initial Access | 36 |
+| `ESCU-IMPACT-###` | Impact | 47 |
+| `ESCU-INIT-###` | Initial Access | 44 |
 | `ESCU-C2-###` | Command and Control | 39 |
-| `ESCU-COLL-###` | Collection | 15 |
-| `ESCU-EXFIL-###` | Exfiltration | 20 |
+| `ESCU-COLL-###` | Collection | 43 |
+| `ESCU-EXFIL-###` | Exfiltration | 31 |
 | `ESCU-RECON-###` | Reconnaissance | 13 |
-| `ESCU-RESDEV-###` | Resource Development | 5 |
-| **Total** | | **556** |
+| `ESCU-RESDEV-###` | Resource Development | 8 |
+| **Total** | | **839** |
 
 Each entry's namespace reflects its *primary* tactic — the first tactic
-resolved from its first MITRE technique ID for the endpoint, network, and
-Linux batches (265 + 77 + 185 = 527 of 556 entries); a hand-assigned
-primary tactic based on the detection's actual description, for the
-smaller, individually-reviewed application batch (29 entries), where its
-technique(s) mapped to more than one tactic. Many entries legitimately map
-to additional tactics too; see each entry's full `mitre_attack.tactics`
-array rather than relying on the ID prefix alone for tactic filtering.
-`ESCU-C2-###` and `ESCU-INIT-###` grew the most from the network batch;
-`ESCU-PRIV-###` grew the most from the Linux batch (Linux privilege
-escalation — sudo/SUID/capability abuse, kernel exploits — is one of the
-most heavily represented technique families in the source project's own
-Linux content).
+resolved from its first MITRE technique ID for the endpoint, network,
+Linux, and cloud batches (265 + 77 + 185 + 283 = 810 of 839 entries); a
+hand-assigned primary tactic based on the detection's actual description,
+for the smaller, individually-reviewed application batch (29 entries),
+where its technique(s) mapped to more than one tactic. Many entries
+legitimately map to additional tactics too; see each entry's full
+`mitre_attack.tactics` array rather than relying on the ID prefix alone
+for tactic filtering. `ESCU-C2-###` and `ESCU-INIT-###` grew the most
+from the network batch; `ESCU-PRIV-###` grew the most from the Linux
+batch (Linux privilege escalation — sudo/SUID/capability abuse, kernel
+exploits — is one of the most heavily represented technique families in
+the source project's own Linux content); `ESCU-PERSIST-###` and
+`ESCU-IMPAIR-###` grew the most from the cloud batch (persistence via
+new access keys/service principals/OAuth grants, and defense impairment
+via disabling CloudTrail/Azure AD logging/GuardDuty, dominate cloud
+identity-attack tradecraft).
 
-**217 distinct MITRE ATT&CK techniques** are represented across the 556
+**262 distinct MITRE ATT&CK techniques** are represented across the 839
 entries — every technique ID was validated against the current MITRE
 ATT&CK Enterprise STIX corpus (spec version 3.3.0), the same validation
 this library's own generator scripts apply to their own content.
@@ -296,21 +342,29 @@ this library's own generator scripts apply to their own content.
 |---|---:|
 | Windows Endpoint | 265 |
 | Linux | 185 |
+| AWS | 84 |
+| Microsoft 365 | 84 |
+| Azure | 50 |
 | Cisco Network | 45 |
 | Network (generic/cross-vendor) | 25 |
 | ESXi | 23 |
+| Cloud (generic/cross-vendor) | 19 |
+| GitHub | 18 |
+| Kubernetes | 18 |
 | Windows Network Telemetry | 6 |
 | Splunk Platform | 6 |
+| Google Cloud Platform | 6 |
+| Google Workspace | 4 |
 | F5 BIG-IP | 1 |
 
 ## Severity, confidence, and false positives
 
 | Severity | Count | | Confidence | Count | | FP Rating | Count |
 |---|---:|---|---|---:|---|---|---:|
-| Medium | 235 | | High | 337 | | Low | 379 |
-| Low | 131 | | Medium | 192 | | Medium | 160 |
-| High | 100 | | Low | 27 | | High | 17 |
-| Critical | 90 | | | | | | |
+| Medium | 386 | | High | 499 | | Low | 590 |
+| Low | 199 | | Medium | 292 | | Medium | 226 |
+| High | 161 | | Low | 48 | | High | 23 |
+| Critical | 93 | | | | | | |
 
 Severity/confidence/`risk_scoring` were **derived, not copied** — the
 source project doesn't carry this library's 1–5 severity/confidence/impact
@@ -333,10 +387,10 @@ that generate more caveat text).
 
 | Type | Count | | Maturity | Count | | Search cost | Count |
 |---|---:|---|---|---:|---|---|---:|
-| TTP | 333 | | Level 3 — behavioral | 333 | | Low cost | 337 |
-| Anomaly | 192 | | Level 2 — threshold | 192 | | Medium cost | 215 |
-| Hunting | 27 | | Level 1 — indicator | 27 | | High cost | 4 |
-| Correlation | 4 | | Level 4 — correlation | 4 | | | |
+| TTP | 493 | | Level 3 — behavioral | 493 | | Low cost | 353 |
+| Anomaly | 292 | | Level 2 — threshold | 292 | | Medium cost | 476 |
+| Hunting | 48 | | Level 1 — indicator | 48 | | High cost | 10 |
+| Correlation | 6 | | Level 4 — correlation | 6 | | | |
 
 `detection_type` is preserved **verbatim** from the source project's own
 `type` field — this is the one field in this catalogue's schema that
@@ -345,25 +399,24 @@ because the source project's TTP/Anomaly/Hunting/Correlation distinction
 is itself meaningful and worth keeping legible rather than force-fitting
 into a different taxonomy.
 
-`Low cost` dominates because 337 of 556 entries use `| tstats` against an
-accelerated CIM data model (`Endpoint.Processes` for the endpoint and
-Linux batches; `Network_Traffic`, `Network_Resolution`, `Web`, or
-`Risk.All_Risk` for the network batch) rather than a raw `search`/`stats`
-pipeline — this is Splunk's own production-tuned SPL, not this library's
-authored SPL, and it shows. The application batch added no new `tstats`
-entries (ESXi syslog and Splunk `_internal`/`_audit` aren't
-CIM-accelerated data models in this catalogue); the network batch brought
-32 more `Low cost` entries alongside 45 `Medium cost` ones; the Linux
-batch — heavily `Sysmon for Linux EventID 1` process-creation searches
-against `Endpoint.Processes` — brought 122 more `Low cost` entries
-alongside 61 `Medium cost` and 2 `High cost` ones.
+Search cost **flips to `Medium cost`-dominant** with the cloud batch — it
+was `Low cost`-dominant through the first four batches (all four skew
+toward `| tstats` against an accelerated CIM data model:
+`Endpoint.Processes` for the endpoint and Linux batches;
+`Network_Traffic`/`Network_Resolution`/`Web`/`Risk.All_Risk` for the
+network batch), but the cloud batch added only 16 more `Low cost` entries
+against 261 `Medium cost` ones — cloud-provider audit-log schemas
+(CloudTrail, Azure AD sign-in logs, the O365 Unified Audit Log,
+Kubernetes audit events) don't map onto Splunk's CIM data models, so most
+of this batch is raw `search`/`stats` against the provider's native event
+schema rather than an accelerated data model.
 
 ## Telemetry requirements
 
 | Requirement | Count | Meaning |
 |---|---:|---|
-| Essential | 340 | Relies on Sysmon (Windows or Linux), native Windows Event Log Security auditing, Linux auditd, VMware ESXi Syslog forwarding, or a network-sensor feed (Zeek/Suricata/Splunk Stream) — foundational telemetry most environments already collect or can enable with a single configuration change. |
-| Recommended | 216 | Relies on PowerShell Script Block Logging (requires explicit GPO enablement), CrowdStrike Falcon-specific fields (third-party EDR-specific), Splunk's own `_internal`/`_audit` indexes, or a specific network-appliance vendor's proprietary event log (Cisco Secure Firewall, Cisco SD-WAN, Palo Alto, F5 BIG-IP) that not every environment has deployed. |
+| Essential | 585 | Relies on Sysmon (Windows or Linux), native Windows Event Log Security auditing, Linux auditd, VMware ESXi Syslog forwarding, a network-sensor feed (Zeek/Suricata/Splunk Stream), or a cloud provider's own audit trail (AWS CloudTrail, Azure AD sign-in/audit logs, the O365 Unified Audit Log, Kubernetes API server audit logs) — foundational telemetry most environments already collect or can enable with a single configuration change. |
+| Recommended | 254 | Relies on PowerShell Script Block Logging (requires explicit GPO enablement), CrowdStrike Falcon-specific fields (third-party EDR-specific), Splunk's own `_internal`/`_audit` indexes, a specific network-appliance vendor's proprietary event log (Cisco Secure Firewall, Cisco SD-WAN, Palo Alto, F5 BIG-IP), or a less-commonly-enabled cloud audit source (GitHub Enterprise Audit Log, Google Workspace admin log, Azure Monitor Activity Log) that not every environment has deployed. |
 
 ## Risk scoring reference
 
@@ -371,10 +424,10 @@ alongside 61 `Medium cost` and 2 `High cost` ones.
 
 | Score band | Count | Interpretation |
 |---|---:|---|
-| 100–125 | 38 | Page immediately / Tier 1 candidate |
-| 60–99 | 143 | Investigate same business day |
-| 30–59 | 200 | Queue for triage / hunting |
-| < 30 | 175 | Enrichment / context-only |
+| 100–125 | 40 | Page immediately / Tier 1 candidate |
+| 60–99 | 204 | Investigate same business day |
+| 30–59 | 342 | Queue for triage / hunting |
+| < 30 | 253 | Enrichment / context-only |
 
 ## Top analytic_story tags represented
 
@@ -385,12 +438,13 @@ these surfaces every curated detection relevant to that threat:
 | Story | Detections | | Story | Detections |
 |---|---:|---|---|---:|
 | Linux Privilege Escalation | 131 | | China-Nexus Threat Activity | 48 |
-| Linux Persistence Techniques | 99 | | Scattered Lapsus$ Hunters | 46 |
-| Compromised Windows Host | 88 | | Ransomware | 43 |
+| Linux Persistence Techniques | 99 | | Ransomware | 43 |
+| Compromised Windows Host | 88 | | Hellcat Ransomware | 41 |
 | Linux Living Off The Land | 86 | | Cisco Secure Firewall Threat Defense Analytics | 39 |
-| Data Destruction | 76 | | Hellcat Ransomware | 38 |
-| Compromised Linux Host | 63 | | Living Off The Land | 37 |
-| CISA AA23-347A | 51 | | Salt Typhoon | 36 |
+| Data Destruction | 81 | | Living Off The Land | 37 |
+| Scattered Lapsus$ Hunters | 77 | | Salt Typhoon | 36 |
+| Compromised Linux Host | 63 | | Office 365 Account Takeover | 36 |
+| CISA AA23-347A | 51 | | APT37 Rustonotto and FadeStealer | 35 |
 
 `Linux Privilege Escalation`, `Linux Persistence Techniques`, `Linux
 Living Off The Land`, and `Compromised Linux Host` are the Linux batch's
@@ -406,7 +460,12 @@ network and Linux batches — every ESXi entry is tagged to the `ESXi Post
 Compromise` story (23 detections, not shown above since it ties with
 several other stories) alongside one or more named-campaign tags, since
 VMware ESXi has been a documented target of several of the campaigns
-represented here.
+represented here. `Office 365 Account Takeover` (36) is the cloud
+batch's own headline story, spanning the mailbox-forwarding-rule and
+authentication-anomaly entries in the `Microsoft 365` component; `Scattered
+Lapsus$ Hunters` grew substantially (46 → 77) with the cloud batch, since
+that campaign's tradecraft is heavily cloud-identity-focused (OAuth
+consent grants, MFA registration abuse, service-principal creation).
 
 ## SPL notes: this is Splunk's production SPL, not this library's house style
 
@@ -450,11 +509,12 @@ detection said.
 
 ---
 
-*Generated from `data/splunk-escu-detections.json` (556 entries: 265
+*Generated from `data/splunk-escu-detections.json` (839 entries: 265
 Windows-scoped and 185 Linux-scoped from `detections/endpoint`, 29 from
-`detections/application`, 77 from `detections/network`), curated from
-`splunk/security_content` at the `develop` branch HEAD as of 2026-08-14.
-Regenerate these tables after any future curation change — the counts
-above are a snapshot, not a live query. To pull a different or larger
+`detections/application`, 77 from `detections/network`, 283 from
+`detections/cloud`), curated from `splunk/security_content` at the
+`develop` branch HEAD as of 2026-08-14. Regenerate these tables after any
+future curation change — the counts above are a snapshot, not a live
+query. To pull a different or larger
 slice, see the curation methodology above and `tools/fetch_mitre_platform.py`'s
 sibling scripts for the pattern.*
