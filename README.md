@@ -32,9 +32,9 @@ into one filterable view:
 | VMware Cloud Foundation / Splunk | Splunk SPL | SDDC Manager, NSX, vSAN encryption, VCF Operations, VCF Operations for Logs, VCF Automation, VCF Salt, HCX, Tanzu/Kubernetes, plus cross-platform (`VCF-X-###`) correlations | 162 |
 | Splunk Platform / Splunk | Splunk SPL | Attacks against, abuse of, or suspicious administrative activity within **Splunk itself** — Splunk Cloud, Splunk Enterprise, Enterprise Security, SOAR, forwarders, and the management tier — plus cross-component (`SPL-X-###`) attack-path correlations | 337 |
 | Active Directory / Splunk | Splunk SPL | Active Directory Domain Services as Tier-0 identity infrastructure — Kerberos, NTLM, LDAP, Group Policy, trusts/SIDHistory, privileged groups/AdminSDHolder, delegation/RBCD, AD CS, LAPS/gMSA, domain controller integrity, credential access, plus cross-platform (`AD-X-###`) identity-correlation chains | 332 |
-| Splunk ESCU (security_content) / Splunk | Splunk SPL | Curated subset of Splunk's own official detections (`splunk/security_content`) — Windows Sysmon/EDR TTP coverage plus VMware ESXi syslog and Splunk CVE-exploit-signature detections, spanning the full MITRE kill chain, complementary to (not duplicative of) the AD/RDP/DHCP and ESXi/Splunk Platform catalogues | 294 |
+| Splunk ESCU (security_content) / Splunk | Splunk SPL | Curated subset of Splunk's own official detections (`splunk/security_content`) — Windows Sysmon/EDR TTP coverage, VMware ESXi syslog and Splunk CVE-exploit-signature detections, and Cisco/network-perimeter telemetry, spanning the full MITRE kill chain, complementary to (not duplicative of) the AD/RDP/DHCP/Fortinet and ESXi/Splunk Platform catalogues | 371 |
 
-`index.html` is the **combined library** — all 2164 detections from all
+`index.html` is the **combined library** — all 2241 detections from all
 twelve catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
@@ -651,34 +651,37 @@ Windows Event IDs or AD schema attributes that don't exist.
 
 `data/splunk-escu-detections.json` is a twelfth catalogue, and a
 structurally different one from the other eleven: it is not authored for
-this project. It's a curated, schema-converted subset of 294 detections
+this project. It's a curated, schema-converted subset of 371 detections
 from Splunk's own official, Apache-2.0-licensed
 [`security_content`](https://github.com/splunk/security_content) project
 (also known as Splunk Enterprise Security Content Updates, or ESCU) —
 production SPL that ships in Splunk's own Splunkbase app, not this
-library's own analysis. It draws from two upstream source directories in
-two batches: `detections/endpoint` (265 entries, Windows-scoped Sysmon/EDR
-telemetry, `component: "Windows Endpoint"`) and `detections/application`
-(29 entries, VMware ESXi syslog and Splunk's own internal telemetry,
-`component: "ESXi"` or `"Splunk Platform"`).
+library's own analysis. It draws from three upstream source directories in
+three batches: `detections/endpoint` (265 entries, Windows-scoped
+Sysmon/EDR telemetry, `component: "Windows Endpoint"`),
+`detections/application` (29 entries, VMware ESXi syslog and Splunk's own
+internal telemetry, `component: "ESXi"` or `"Splunk Platform"`), and
+`detections/network` (77 entries, Cisco/network-perimeter and
+network-sensor telemetry, `component: "Cisco Network"`, `"Windows Network
+Telemetry"`, `"F5 BIG-IP"`, or generic `"Network"`).
 
 | Namespace | Primary MITRE tactic | Detections |
 |---|---|---|
-| `ESCU-IMPAIR-###` | Defense Impairment | 38 |
-| `ESCU-STEALTH-###` | Stealth | 33 |
-| `ESCU-EXEC-###` | Execution | 26 |
-| `ESCU-CRED-###` | Credential Access | 26 |
-| `ESCU-DISC-###` | Discovery | 25 |
-| `ESCU-PERSIST-###` | Persistence | 22 |
-| `ESCU-LM-###` | Lateral Movement | 22 |
+| `ESCU-IMPAIR-###` | Defense Impairment | 41 |
+| `ESCU-STEALTH-###` | Stealth | 34 |
+| `ESCU-EXEC-###` | Execution | 35 |
+| `ESCU-CRED-###` | Credential Access | 28 |
+| `ESCU-DISC-###` | Discovery | 30 |
+| `ESCU-PERSIST-###` | Persistence | 23 |
+| `ESCU-LM-###` | Lateral Movement | 28 |
 | `ESCU-PRIV-###` | Privilege Escalation | 19 |
 | `ESCU-IMPACT-###` | Impact | 19 |
-| `ESCU-INIT-###` | Initial Access | 16 |
-| `ESCU-C2-###` | Command and Control | 15 |
+| `ESCU-INIT-###` | Initial Access | 32 |
+| `ESCU-C2-###` | Command and Control | 34 |
 | `ESCU-COLL-###` | Collection | 13 |
-| `ESCU-EXFIL-###` | Exfiltration | 8 |
-| `ESCU-RECON-###` | Reconnaissance | 8 |
-| `ESCU-RESDEV-###` | Resource Development | 4 |
+| `ESCU-EXFIL-###` | Exfiltration | 17 |
+| `ESCU-RECON-###` | Reconnaissance | 13 |
+| `ESCU-RESDEV-###` | Resource Development | 5 |
 
 **Why the Windows endpoint batch exists alongside the AD/RDP/DHCP
 catalogues rather than duplicating them:** the existing Windows-scoped
@@ -708,6 +711,18 @@ write, debug-log information disclosure, user enumeration, dashboard XSS)
 deliberately doesn't cover (it's scoped to administrative/configuration
 abuse and behavioral anomalies, not CVE-specific signatures).
 
+**The network batch is different from the first two: no topical-overlap
+curation was applied**, per explicit instruction — every file in
+`detections/network` that met this library's two hard, universal bars
+(`status: production`, a validated non-empty MITRE technique mapping) was
+brought in, 77 of 101. A number of these entries are topically adjacent to
+existing content (rogue-DHCP, RDP brute force) but read from a
+network-sensor perspective (Zeek/Suricata/Splunk Stream watching the
+wire) rather than the Windows-Event-Log perspective this library's own
+DHCP/RDP catalogues use — unlike the first two batches, that distinction
+wasn't used to decide inclusion here, only to explain why entries that
+look like duplicates usually aren't.
+
 **Curation methodology:** of the ~1,250 Windows-scoped files in
 `security_content/detections/endpoint`, the first batch keeps only
 `status: production` content (excluding `experimental`), removes the 16
@@ -719,15 +734,17 @@ detections for. The much smaller `detections/application` directory
 second batch filtered to ESXi- and Splunk-named files, same
 `status: production` and MITRE-mapping requirements applied, with two
 files excluded (one `experimental`, one with no MITRE technique mapping).
-See
+The third batch takes every qualifying file from `detections/network`
+(101 files; 22 `experimental` and 2 with no MITRE mapping excluded, 77
+kept) with no further curation. See
 [`docs/splunk-escu-detection-library.md`](docs/splunk-escu-detection-library.md)
 for the full methodology, severity/confidence/false-positive distributions,
 and the "SPL notes" section explaining why this catalogue's SPL looks
 different from the rest of the library's (`security_content_summariesonly`/
 `security_content_ctime` macros, `` `<name>_filter` `` macros, and
-`tstats`-against-`datamodel=Endpoint.Processes` queries all require the
-ESCU Splunkbase app or an equivalent CIM-accelerated Endpoint data model —
-see the Disclaimer section below).
+`tstats`-against-accelerated-CIM-data-model queries all require the ESCU
+Splunkbase app or the equivalent data models — see the Disclaimer section
+below).
 
 Every entry follows `schema/splunk-escu-detection.schema.json`, a superset
 of this library's usual detection fields with dedicated provenance fields
@@ -935,7 +952,7 @@ rather than through the UI:
   "baseline your backup service accounts before enabling this in
   production"). The other ten catalogues (Red Hat, Fortinet, Dell iDRAC,
   HPE iLO, Windows DHCP, Windows RDP, VCF, Splunk Platform, Active
-  Directory, Splunk ESCU — 1,968 entries) instead use
+  Directory, Splunk ESCU — 2,045 entries) instead use
   `false_positive_rating`, a three-value category (`Low` / `Medium` /
   `High`) plus prose guidance spread across `tuning_guidance` and
   `investigation_steps[]`. Don't assume `known_false_positives` is present

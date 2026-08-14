@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/adamliq/Threat-detection-library/schema/splunk-escu-detection.schema.json",
   "title": "Threat Detection Library - Splunk ESCU (security_content) Detection Entry",
-  "description": "Schema for a single detection entry in data/splunk-escu-detections.json. Unlike every other catalogue in this library, these entries are not authored for this project — they are a curated, schema-converted subset of detections from Splunk's official, Apache-2.0-licensed 'security_content' project (https://github.com/splunk/security_content), also known as Splunk Enterprise Security Content Updates (ESCU). The catalogue spans two upstream source directories: detections/endpoint (Windows-scoped Sysmon/EDR telemetry) and detections/application (ESXi syslog and Splunk's own _internal/_audit telemetry) — see each entry's component field for which. Provenance fields (source_id, source_url, source_version, source_author) trace every entry back to its original file so changes upstream can be reconciled.",
+  "description": "Schema for a single detection entry in data/splunk-escu-detections.json. Unlike every other catalogue in this library, these entries are not authored for this project — they are a curated, schema-converted subset of detections from Splunk's official, Apache-2.0-licensed 'security_content' project (https://github.com/splunk/security_content), also known as Splunk Enterprise Security Content Updates (ESCU). The catalogue spans three upstream source directories: detections/endpoint (Windows-scoped Sysmon/EDR telemetry), detections/application (ESXi syslog and Splunk's own _internal/_audit telemetry), and detections/network (Cisco network-device, Zeek/Suricata/Stream network-sensor, and other network-perimeter telemetry) — see each entry's component field and source_url for which. Provenance fields (source_id, source_url, source_version, source_author) trace every entry back to its original file so changes upstream can be reconciled.",
   "type": "object",
   "required": [
     "id", "title", "description", "component", "severity", "confidence",
@@ -17,7 +17,7 @@
     "id": { "type": "string", "pattern": "^ESCU-(INIT|EXEC|PERSIST|PRIV|STEALTH|IMPAIR|CRED|DISC|LM|COLL|C2|EXFIL|IMPACT|RECON|RESDEV)-[0-9]{3}$", "description": "Namespaced sequential ID, one namespace per primary MITRE tactic." },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "component": { "type": "string", "description": "'Windows Endpoint', 'ESXi', or 'Splunk Platform' depending on which upstream source_url directory the entry came from; kept as a field for consistency with the rest of the library's faceting." },
+    "component": { "type": "string", "description": "'Windows Endpoint', 'ESXi', 'Splunk Platform', 'Cisco Network', 'Windows Network Telemetry', 'F5 BIG-IP', or 'Network' (generic/vendor-agnostic) depending on which upstream source_url directory and vendor the entry came from; kept as a field for consistency with the rest of the library's faceting." },
     "severity": { "type": "string", "enum": ["informational", "low", "medium", "high", "critical"] },
     "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
     "detection_type": { "type": "string", "enum": ["TTP", "Anomaly", "Hunting", "Correlation"], "description": "Preserved verbatim from the source project's own `type` field, unlike this library's other catalogues which use a locally-defined vocabulary." },

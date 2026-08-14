@@ -1,6 +1,6 @@
 # Splunk Security Content (ESCU) Catalogue
 
-Companion index to `data/splunk-escu-detections.json` (294 Splunk SPL
+Companion index to `data/splunk-escu-detections.json` (371 Splunk SPL
 detections). Unlike every other catalogue in this library, **these
 detections are not authored for this project.** They are a curated,
 schema-converted subset of detections from Splunk's own official
@@ -9,8 +9,8 @@ schema-converted subset of detections from Splunk's own official
 Apache-2.0-licensed, actively maintained by Splunk's threat research team,
 and running in production Splunk ES deployments today.
 
-The catalogue draws from two upstream source directories, brought in as
-two separate batches:
+The catalogue draws from three upstream source directories, brought in as
+three separate batches:
 
 - **`detections/endpoint`** (265 entries, `component: "Windows Endpoint"`) —
   Windows-scoped Sysmon/EDR host telemetry. See "Scope and curation
@@ -19,6 +19,12 @@ two separate batches:
   `"Splunk Platform"`) — VMware ESXi syslog and Splunk's own internal
   telemetry. See "The `detections/application` batch: ESXi and Splunk"
   below.
+- **`detections/network`** (77 entries, `component: "Cisco Network"`,
+  `"Windows Network Telemetry"`, `"F5 BIG-IP"`, or generic `"Network"`) —
+  network-perimeter telemetry: Cisco IOS/Secure Firewall/SD-WAN/Secure
+  Access, Zeek/Suricata/Splunk Stream network-sensor data, Palo Alto
+  Networks, AWS VPC Flow Logs, and Windows-network-visible behavior. See
+  "The `detections/network` batch: everything that qualified" below.
 
 Every detection ID below is a stable reference into
 `data/splunk-escu-detections.json` — look it up by `id` for the full SPL,
@@ -150,36 +156,91 @@ in real `_internal`/`_audit` log patterns — a genuinely different, and
 genuinely useful, complementary angle this library's own catalogue chose
 not to cover.
 
+## The `detections/network` batch: everything that qualified
+
+A third batch (77 entries) brings in **every qualifying file** from
+`security_content`'s `detections/network` directory — no topical-overlap
+curation was applied this time, unlike the first two batches. "Qualifying"
+still means the same two hard, library-wide non-negotiables every other
+catalogue in this project is held to:
+
+- **`status: production` only.** 22 of the directory's 101 files are
+  `experimental` and were excluded.
+- **A non-empty, validated MITRE ATT&CK technique mapping.** 2 more files
+  (`cisco_secure_firewall___bits_network_activity.yml`,
+  `protocols_passing_authentication_in_cleartext.yml`) are `production`
+  but carry `mitre_attack_id: []` and were excluded for the same reason
+  `splunk_appdynamics_secure_application_alerts.yml` was excluded from the
+  application batch. All 30 distinct technique IDs used by the remaining
+  77 files validated against the current MITRE ATT&CK Enterprise STIX
+  corpus with zero invalid IDs.
+
+That leaves **77 of 101** files, spanning Cisco IOS/Secure Firewall
+(Snort IPS)/SD-WAN/Secure Access (Umbrella), generic network-sensor data
+(Zeek `conn.log`, Suricata, Splunk Stream), Palo Alto Networks, F5 BIG-IP,
+AWS VPC Flow Logs, and Windows-network-visible behavior (AD replication
+traffic, rogue domain controllers, SIGRed via Zeek/Stream, RDP brute
+force over the wire). `component` reflects the vendor/telemetry source:
+`Cisco Network` (45), generic `Network` (25, the Zeek/Suricata/Stream/
+cross-vendor entries), `Windows Network Telemetry` (6), `F5 BIG-IP` (1).
+
+**Primary tactic assignment reverts to the mechanical rule** used by the
+original endpoint batch (the first tactic of the first listed MITRE
+technique ID) rather than the application batch's hand-curated approach —
+at 77 files this is large enough that individual review of every
+multi-tactic technique's best-fit tactic wasn't practical, and the
+mechanical rule is the same one already used for 265 of this catalogue's
+371 entries.
+
+**On overlap with this library's own catalogues:** a number of these
+entries are topically adjacent to existing content — `detect_rogue_dhcp_
+server.yml` to this library's `DHCP-NET-###` rogue-DHCP detections,
+`windows_remote_desktop_network_bruteforce_attempt.yml` and
+`remote_desktop_network_traffic.yml` to `RDP-AUTH-###`/`RDP-NET-###`. As
+with the application batch, the telemetry layer differs — these entries
+are network-sensor perspective (Zeek/Suricata/Stream watching the wire)
+rather than the Windows-Event-Log-based perspective this library's own
+DHCP/RDP catalogues use — but unlike the application batch, **that
+distinction wasn't used to decide inclusion here**; every qualifying file
+was brought in regardless of overlap, per explicit instruction for this
+batch. Treat entries that read like duplicates of existing content as a
+second telemetry angle on the same behavior, and check each entry's
+`data_sources[]` before assuming redundancy.
+
 ## Namespace coverage matrix
 
 | Namespace | Primary MITRE tactic | Detections |
 |---|---|---:|
-| `ESCU-IMPAIR-###` | Defense Impairment (TA0112) | 38 |
-| `ESCU-STEALTH-###` | Stealth (TA0005 — MITRE's current name for the classic "Defense Evasion" tactic) | 33 |
-| `ESCU-EXEC-###` | Execution | 26 |
-| `ESCU-CRED-###` | Credential Access | 26 |
-| `ESCU-DISC-###` | Discovery | 25 |
-| `ESCU-PERSIST-###` | Persistence | 22 |
-| `ESCU-LM-###` | Lateral Movement | 22 |
+| `ESCU-IMPAIR-###` | Defense Impairment (TA0112) | 41 |
+| `ESCU-STEALTH-###` | Stealth (TA0005 — MITRE's current name for the classic "Defense Evasion" tactic) | 34 |
+| `ESCU-EXEC-###` | Execution | 35 |
+| `ESCU-CRED-###` | Credential Access | 28 |
+| `ESCU-DISC-###` | Discovery | 30 |
+| `ESCU-PERSIST-###` | Persistence | 23 |
+| `ESCU-LM-###` | Lateral Movement | 28 |
 | `ESCU-PRIV-###` | Privilege Escalation | 19 |
 | `ESCU-IMPACT-###` | Impact | 19 |
-| `ESCU-INIT-###` | Initial Access | 16 |
-| `ESCU-C2-###` | Command and Control | 15 |
+| `ESCU-INIT-###` | Initial Access | 32 |
+| `ESCU-C2-###` | Command and Control | 34 |
 | `ESCU-COLL-###` | Collection | 13 |
-| `ESCU-EXFIL-###` | Exfiltration | 8 |
-| `ESCU-RECON-###` | Reconnaissance | 8 |
-| `ESCU-RESDEV-###` | Resource Development | 4 |
-| **Total** | | **294** |
+| `ESCU-EXFIL-###` | Exfiltration | 17 |
+| `ESCU-RECON-###` | Reconnaissance | 13 |
+| `ESCU-RESDEV-###` | Resource Development | 5 |
+| **Total** | | **371** |
 
-Each entry's namespace reflects its *primary* tactic — for the endpoint
-batch, the first tactic resolved from its first MITRE technique ID; for
-the smaller, individually-reviewed application batch, a hand-assigned
-primary tactic based on the detection's actual description where its
+Each entry's namespace reflects its *primary* tactic — the first tactic
+resolved from its first MITRE technique ID for the endpoint and network
+batches (265 + 77 = 342 of 371 entries); a hand-assigned primary tactic
+based on the detection's actual description, for the smaller,
+individually-reviewed application batch (29 entries), where its
 technique(s) mapped to more than one tactic. Many entries legitimately map
 to additional tactics too; see each entry's full `mitre_attack.tactics`
 array rather than relying on the ID prefix alone for tactic filtering.
+`ESCU-C2-###` and `ESCU-INIT-###` grew the most from the network batch —
+unsurprising, since network-perimeter telemetry is naturally weighted
+toward inbound-access and outbound-beaconing detection.
 
-**154 distinct MITRE ATT&CK techniques** are represented across the 294
+**181 distinct MITRE ATT&CK techniques** are represented across the 371
 entries — every technique ID was validated against the current MITRE
 ATT&CK Enterprise STIX corpus (spec version 3.3.0), the same validation
 this library's own generator scripts apply to their own content.
@@ -187,17 +248,21 @@ this library's own generator scripts apply to their own content.
 | Component | Detections |
 |---|---:|
 | Windows Endpoint | 265 |
+| Cisco Network | 45 |
+| Network (generic/cross-vendor) | 25 |
 | ESXi | 23 |
+| Windows Network Telemetry | 6 |
 | Splunk Platform | 6 |
+| F5 BIG-IP | 1 |
 
 ## Severity, confidence, and false positives
 
 | Severity | Count | | Confidence | Count | | FP Rating | Count |
 |---|---:|---|---|---:|---|---|---:|
-| Medium | 129 | | High | 254 | | Low | 206 |
-| Critical | 75 | | Medium | 31 | | Medium | 86 |
-| High | 61 | | Low | 9 | | High | 2 |
-| Low | 29 | | | | | | |
+| Medium | 155 | | High | 285 | | Low | 253 |
+| Critical | 77 | | Medium | 71 | | Medium | 103 |
+| High | 76 | | Low | 15 | | High | 15 |
+| Low | 63 | | | | | | |
 
 Severity/confidence/`risk_scoring` were **derived, not copied** — the
 source project doesn't carry this library's 1–5 severity/confidence/impact
@@ -220,10 +285,10 @@ that generate more caveat text).
 
 | Type | Count | | Maturity | Count | | Search cost | Count |
 |---|---:|---|---|---:|---|---|---:|
-| TTP | 253 | | Level 3 — behavioral | 253 | | Low cost | 183 |
-| Anomaly | 31 | | Level 2 — threshold | 31 | | Medium cost | 109 |
-| Hunting | 9 | | Level 1 — indicator | 9 | | High cost | 2 |
-| Correlation | 1 | | Level 4 — correlation | 1 | | | |
+| TTP | 282 | | Level 3 — behavioral | 282 | | Low cost | 215 |
+| Anomaly | 71 | | Level 2 — threshold | 71 | | Medium cost | 154 |
+| Hunting | 15 | | Level 1 — indicator | 15 | | High cost | 2 |
+| Correlation | 3 | | Level 4 — correlation | 3 | | | |
 
 `detection_type` is preserved **verbatim** from the source project's own
 `type` field — this is the one field in this catalogue's schema that
@@ -232,20 +297,22 @@ because the source project's TTP/Anomaly/Hunting/Correlation distinction
 is itself meaningful and worth keeping legible rather than force-fitting
 into a different taxonomy.
 
-`Low cost` dominates because 183 of 294 entries use `| tstats` against an
-accelerated data model (`Endpoint.Processes`) rather than a raw
-`search`/`stats` pipeline — this is Splunk's own production-tuned SPL, not
-this library's authored SPL, and it shows. The 29-entry application batch
-adds no new `tstats` entries (ESXi syslog and Splunk `_internal`/`_audit`
-aren't CIM-accelerated data models in this catalogue), which is why
-`Medium cost` grew faster than `Low cost` between the two batches.
+`Low cost` dominates because 215 of 371 entries use `| tstats` against an
+accelerated CIM data model (`Endpoint.Processes` for the endpoint batch;
+`Network_Traffic`, `Network_Resolution`, `Web`, or `Risk.All_Risk` for the
+network batch) rather than a raw `search`/`stats` pipeline — this is
+Splunk's own production-tuned SPL, not this library's authored SPL, and
+it shows. The application batch added no new `tstats` entries (ESXi
+syslog and Splunk `_internal`/`_audit` aren't CIM-accelerated data models
+in this catalogue); the network batch brought 32 more `Low cost` entries
+alongside 45 `Medium cost` ones.
 
 ## Telemetry requirements
 
 | Requirement | Count | Meaning |
 |---|---:|---|
-| Essential | 141 | Relies on Sysmon or native Windows Event Log Security auditing (endpoint batch), or VMware ESXi Syslog forwarding (application batch) — foundational telemetry most environments already collect or can enable with a single configuration change. |
-| Recommended | 153 | Relies on PowerShell Script Block Logging (requires explicit GPO enablement), CrowdStrike Falcon-specific fields (third-party EDR-specific), or Splunk's own `_internal`/`_audit` indexes (always present, but the exact field schema is version-dependent). |
+| Essential | 160 | Relies on Sysmon, native Windows Event Log Security auditing, VMware ESXi Syslog forwarding, or a network-sensor feed (Zeek/Suricata/Splunk Stream) — foundational telemetry most environments already collect or can enable with a single configuration change. |
+| Recommended | 211 | Relies on PowerShell Script Block Logging (requires explicit GPO enablement), CrowdStrike Falcon-specific fields (third-party EDR-specific), Splunk's own `_internal`/`_audit` indexes, or a specific network-appliance vendor's proprietary event log (Cisco Secure Firewall, Cisco SD-WAN, Palo Alto, F5 BIG-IP) that not every environment has deployed. |
 
 ## Risk scoring reference
 
@@ -254,9 +321,9 @@ aren't CIM-accelerated data models in this catalogue), which is why
 | Score band | Count | Interpretation |
 |---|---:|---|
 | 100–125 | 27 | Page immediately / Tier 1 candidate |
-| 60–99 | 106 | Investigate same business day |
-| 30–59 | 99 | Queue for triage / hunting |
-| < 30 | 62 | Enrichment / context-only |
+| 60–99 | 122 | Investigate same business day |
+| 30–59 | 117 | Queue for triage / hunting |
+| < 30 | 105 | Enrichment / context-only |
 
 ## Top analytic_story tags represented
 
@@ -266,22 +333,24 @@ these surfaces every curated detection relevant to that threat:
 
 | Story | Detections | | Story | Detections |
 |---|---:|---|---|---:|
-| Compromised Windows Host | 87 | | Hermetic Wiper | 30 |
-| CISA AA23-347A | 51 | | Hellcat Ransomware | 29 |
-| Data Destruction | 45 | | Windows Defense Evasion Tactics | 27 |
-| Ransomware | 37 | | China-Nexus Threat Activity | 26 |
-| Living Off The Land | 36 | | Graceful Wipe Out Attack | 26 |
-| APT37 Rustonotto and FadeStealer | 35 | | Medusa Ransomware | 24 |
-| Scattered Lapsus$ Hunters | 33 | | Active Directory Lateral Movement | 23 |
-| Black Basta Ransomware | 33 | | BlackByte Ransomware | 22 |
-| Windows Registry Abuse | 31 | | Prestige Ransomware | 22 |
+| Compromised Windows Host | 88 | | Black Basta Ransomware | 33 |
+| CISA AA23-347A | 51 | | Windows Registry Abuse | 31 |
+| Data Destruction | 47 | | Hellcat Ransomware | 30 |
+| Ransomware | 42 | | China-Nexus Threat Activity | 30 |
+| Scattered Lapsus$ Hunters | 41 | | Hermetic Wiper | 30 |
+| Cisco Secure Firewall Threat Defense Analytics | 39 | | Windows Defense Evasion Tactics | 27 |
+| Living Off The Land | 37 | | Graceful Wipe Out Attack | 26 |
+| APT37 Rustonotto and FadeStealer | 35 | | Salt Typhoon | 25 |
 
-`Black Basta Ransomware` and `China-Nexus Threat Activity` are new entrants
-to this table courtesy of the application batch — every ESXi entry is
-tagged to the `ESXi Post Compromise` story (23 detections, not shown above
-since it ties with several endpoint-batch stories) alongside one or more
-of these named-campaign tags, since VMware ESXi has been a documented
-target of both.
+`Cisco Secure Firewall Threat Defense Analytics` (39) is the network
+batch's own headline story, spanning the 45 Cisco-named entries plus
+several generic ones; `Salt Typhoon` (25, a Cisco/telecom-focused
+nation-state campaign) is another new entrant. `Black Basta Ransomware`
+and `China-Nexus Threat Activity` first appeared with the application
+batch — every ESXi entry is tagged to the `ESXi Post Compromise` story
+(23 detections, not shown above since it ties with several other stories)
+alongside one or more of these named-campaign tags, since VMware ESXi has
+been a documented target of both.
 
 ## SPL notes: this is Splunk's production SPL, not this library's house style
 
@@ -325,10 +394,11 @@ detection said.
 
 ---
 
-*Generated from `data/splunk-escu-detections.json` (294 entries: 265 from
-`detections/endpoint`, 29 from `detections/application`), curated from
-`splunk/security_content` at the `develop` branch HEAD as of 2026-08-14.
-Regenerate these tables after any future curation change — the counts
-above are a snapshot, not a live query. To pull a different or larger
+*Generated from `data/splunk-escu-detections.json` (371 entries: 265 from
+`detections/endpoint`, 29 from `detections/application`, 77 from
+`detections/network`), curated from `splunk/security_content` at the
+`develop` branch HEAD as of 2026-08-14. Regenerate these tables after any
+future curation change — the counts above are a snapshot, not a live
+query. To pull a different or larger
 slice, see the curation methodology above and `tools/fetch_mitre_platform.py`'s
 sibling scripts for the pattern.*
