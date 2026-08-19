@@ -15,7 +15,7 @@ as JSON. A second top-level tab, **Heat Coverage**, shows the whole
 library as an ATT&CK technique × tactic matrix shaded by detection density
 — see [Heat Coverage tab](#heat-coverage-tab) below.
 
-The repo holds twelve catalogues of detection content, spanning two
+The repo holds thirteen catalogues of detection content, spanning two
 different query languages and sixteen platform families — combined
 into one filterable view:
 
@@ -33,17 +33,18 @@ into one filterable view:
 | Splunk Platform / Splunk | Splunk SPL | Attacks against, abuse of, or suspicious administrative activity within **Splunk itself** — Splunk Cloud, Splunk Enterprise, Enterprise Security, SOAR, forwarders, and the management tier — plus cross-component (`SPL-X-###`) attack-path correlations | 337 |
 | Active Directory / Splunk | Splunk SPL | Active Directory Domain Services as Tier-0 identity infrastructure — Kerberos, NTLM, LDAP, Group Policy, trusts/SIDHistory, privileged groups/AdminSDHolder, delegation/RBCD, AD CS, LAPS/gMSA, domain controller integrity, credential access, plus cross-platform (`AD-X-###`) identity-correlation chains | 332 |
 | Splunk ESCU (security_content) / Splunk | Splunk SPL | Curated subset of Splunk's own official detections (`splunk/security_content`) — Windows, Linux, and macOS Sysmon/EDR/CrowdStrike/osquery TTP coverage, VMware ESXi syslog and Splunk CVE-exploit-signature detections, Cisco/network-perimeter telemetry (including Isovalent eBPF and NVM endpoint-flow data), AWS/Azure/Microsoft 365/GCP/Kubernetes/GitHub cloud-identity telemetry, web-application CVE-exploit-signature detections (Ivanti, Citrix, Confluence, JetBrains TeamCity, Zscaler, and more), and identity-provider/Cisco-appliance/AI-LLM-abuse telemetry (Okta, PingID, Cisco ASA/Duo/IOS XE/SD-WAN, AWS Bedrock, MCP, Microsoft 365 Copilot), spanning the full MITRE kill chain, complementary to (and in the Linux/Kerberos case, partially overlapping with) the AD/RDP/DHCP/Fortinet, ESXi/Splunk Platform, and Red Hat catalogues | 2012 |
+| Cisco Network Device / Splunk | Splunk SPL | MITRE ATT&CK-driven gap fill for Cisco IOS/IOS XE/ASA/FTD network devices — every ATT&CK `Network Devices`-platform technique this library didn't already detect via its ESCU Cisco content but MITRE itself has a real Detection Analytic for, including entries grounded in named real-world threats (SYNful Knock, the ArcaneDoor campaign's Line Dancer/Line Runner, Salt Typhoon's JumbledPath, KV Botnet Activity) | 62 |
 
-`index.html` is the **combined library** — all 3882 detections from all
-twelve catalogues, filterable by a **Catalogue / Tool** facet (so you can
+`index.html` is the **combined library** — all 3944 detections from all
+thirteen catalogues, filterable by a **Catalogue / Tool** facet (so you can
 view any one alone or all together) alongside the usual tactic/severity/
 component/method/data-source facets. Filter groups render in
 alphabetical order and start collapsed — click a group's heading to
 expand it. A detail card renders whichever query type applies (a Splunk
 SPL search block for ESXi, Red Hat, Fortinet, iDRAC, iLO, DHCP, RDP, VCF,
-Splunk Platform, Active Directory, and Splunk ESCU entries, an Aria
-search query block for Aria entries) plus a CLI/API reference, auditd
-rule set, or risk/maturity/CIM metadata where present.
+Splunk Platform, Active Directory, Splunk ESCU, and Cisco Network Device
+entries, an Aria search query block for Aria entries) plus a CLI/API
+reference, auditd rule set, or risk/maturity/CIM metadata where present.
 
 ## Batch 1: VMware ESXi
 
@@ -896,6 +897,58 @@ field and primary MITRE tactic, then spot-checked; treat them as this
 library's own risk assessment layered on top of Splunk's detection logic,
 not something Splunk itself asserts.
 
+## Cisco Network Device Threat Detection Library
+
+`data/cisco-detections.json` is a thirteenth catalogue, and a different
+kind of "new" from every one before it: it wasn't built from a spec or a
+platform description — it was built by diffing this library against
+itself. The **ATT&CK Coverage** modal's Cisco tab (see below) already
+tracks every technique MITRE ATT&CK scopes to its `Network Devices`
+platform against this library's Cisco-scoped ESCU content; that
+comparison found 68 uncovered techniques, 62 of which MITRE itself has
+published a real Detection Analytic for. This catalogue is those 62 —
+the same "MITRE-driven gap fill" methodology this library used once
+before for the original ESXi catalogue's second batch, applied here for
+the first time to build an entirely new, standalone catalogue rather than
+extend an existing one.
+
+Twelve of the 62 entries go a step further and cite a specific,
+MITRE-documented Cisco-targeting threat by name — verified against that
+malware/campaign object's own MITRE `uses` relationship to the technique,
+not inferred from the technique name alone:
+
+- **SYNful Knock** (`S0519`) — the covert Cisco IOS firmware implant
+  first documented publicly in 2015.
+- **ArcaneDoor** (`C0046`) and its malware **Line Dancer** (`S1186`) and
+  **Line Runner** (`S1188`) — a 2023–24 campaign targeting Cisco ASA/FTD
+  devices specifically.
+- **Salt Typhoon**'s **JumbledPath** (`S1206`) — a custom Go-based
+  utility the PRC state actor used to obscure its network-device-focused
+  operations.
+- **KV Botnet Activity** (`C0035`) — a campaign against end-of-life
+  SOHO/edge network equipment.
+
+Every entry follows `schema/cisco-detection.schema.json`, uses the same
+`CSCO-<TAC>-###` namespace convention (one namespace per primary MITRE
+tactic) the Splunk ESCU catalogue uses, and carries a `mitre_analytics[]`
+field citing the exact official MITRE Detection Analytic ID it's grounded
+in — every SPL search here follows what that analytic actually describes,
+not an independent guess. `component` splits by device/feature area:
+`"Cisco IOS/IOS XE"` for router/switch firmware-and-boot-specific
+techniques, `"Cisco ASA/FTD"` for firewall-specific techniques,
+`"Cisco Network Device"` for behavior that spans the family. See
+[`docs/cisco-detection-library.md`](docs/cisco-detection-library.md) for
+the full methodology, coverage matrices, and the named-threat
+cross-reference table.
+
+Regenerating `data/mitre-attack-cisco.json` after this catalogue was
+added shows the Cisco tab's coverage jump from 32/100 to **94/100** —
+the six techniques still uncovered are the ones without a real MITRE
+Detection Analytic to ground a detection in (`covered_by_library: false`
+but `has_platform_analytic: false`), a genuine gap in MITRE's own
+published analytic coverage rather than one this library chose not to
+fill.
+
 ## Repository layout
 
 ```
@@ -911,9 +964,10 @@ data/vcf-detections.json       Canonical source of truth for the VMware Cloud Fo
 data/splunk-detections.json    Canonical source of truth for the Splunk Platform (self-protection) catalogue.
 data/ad-detections.json        Canonical source of truth for the Active Directory catalogue.
 data/splunk-escu-detections.json  Curated, schema-converted subset of splunk/security_content's Windows endpoint detections.
+data/cisco-detections.json     Canonical source of truth for the Cisco Network Device catalogue (MITRE ATT&CK-driven gap fill).
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 data/mitre-attack-windows.json  MITRE ATT&CK Windows techniques + official Detection Analytics, coverage computed across the AD/RDP/DHCP catalogues.
-data/mitre-attack-cisco.json    MITRE ATT&CK "Network Devices" platform techniques + official Detection Analytics, coverage computed across the ESCU catalogue's Cisco Network/ASA/IOS XE/SD-WAN entries.
+data/mitre-attack-cisco.json    MITRE ATT&CK "Network Devices" platform techniques + official Detection Analytics, coverage computed across the ESCU catalogue's Cisco Network/ASA/IOS XE/SD-WAN entries and the dedicated Cisco Network Device catalogue.
 data/mitre-attack-universe.json  Full ATT&CK Enterprise technique/tactic universe (all platforms, parent-technique level) backing the Heat Coverage tab.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -928,6 +982,7 @@ docs/vcf-detection-library.md  Coverage matrices, Priority Detection Packs, VCF 
 docs/splunk-platform-detection-library.md  Coverage matrices, Cloud-vs-Enterprise matrix, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Splunk Platform catalogue.
 docs/ad-detection-library.md  Coverage matrices, Priority Detection Packs, Attack-Path Matrix, and gap analysis for the Active Directory catalogue.
 docs/splunk-escu-detection-library.md  Curation methodology, coverage matrices, and attribution/license notes for the Splunk ESCU catalogue.
+docs/cisco-detection-library.md  MITRE-gap-fill methodology, coverage matrices, and named-threat cross-references for the Cisco Network Device catalogue.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -940,9 +995,10 @@ schema/vcf-detection.schema.json  JSON Schema for data/vcf-detections.json entri
 schema/splunk-platform-detection.schema.json  JSON Schema for data/splunk-detections.json entries.
 schema/ad-detection.schema.json  JSON Schema for data/ad-detections.json entries.
 schema/splunk-escu-detection.schema.json  JSON Schema for data/splunk-escu-detections.json entries.
-index.template.html            Combined-library page shell (CSS/JS) with markers for all twelve data files.
-index.html                     Generated: template + all twelve data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
-tools/build.py                 Regenerates index.html from all twelve data/*.json files.
+schema/cisco-detection.schema.json  JSON Schema for data/cisco-detections.json entries.
+index.template.html            Combined-library page shell (CSS/JS) with markers for all thirteen data files.
+index.html                     Generated: template + all thirteen data files. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
+tools/build.py                 Regenerates index.html from all thirteen data/*.json files.
 tools/fetch_mitre_platform.py  Regenerates data/mitre-attack-<platform>.json from the official MITRE ATT&CK dataset.
 tools/fetch_mitre_universe.py  Regenerates data/mitre-attack-universe.json (the full technique/tactic universe behind the Heat Coverage tab).
 tools/import_aria_catalogue.py Regenerates data/aria-detections.json from docs/aria-catalogue-source.md.
@@ -971,18 +1027,22 @@ platform:
   `data/dhcp-detections.json` — the three Windows-scoped catalogues; for
   `cisco`, across the 70 `data/splunk-escu-detections.json` entries whose
   `component` is `"Cisco Network"`, `"Cisco ASA"`, `"Cisco IOS XE"`, or
-  `"Cisco SD-WAN"` — deliberately excluding this catalogue's other
+  `"Cisco SD-WAN"`, plus the entire 62-entry `data/cisco-detections.json`
+  catalogue that was built specifically to close the gap this file
+  identified — deliberately excluding the ESCU catalogue's other
   Cisco-branded components (`"Cisco Duo"`, `"Cisco Isovalent"`, `"Cisco
   NVM"`), which are genuinely Cisco products but not **Network Devices**
   platform telemetry (MFA/identity, container/eBPF, and a Windows
   endpoint agent, respectively) — including them would inflate the
   coverage count with techniques this library doesn't actually detect via
-  network-device telemetry. **MITRE has no dedicated "Cisco" platform** —
-  `Network Devices` is the closest ATT&CK platform value (the one
-  router/switch/firewall techniques are scoped to), so the `cisco` file's
-  own `platform` metadata field and in-modal heading say "Network
-  Devices" even though the tab is labeled "Cisco" for consistency with
-  this library's own component naming.
+  network-device telemetry. Coverage stands at 94/100 as a result (see
+  the [Cisco Network Device Threat Detection Library](#cisco-network-device-threat-detection-library)
+  section above for how the remaining 6 break down). **MITRE has no
+  dedicated "Cisco" platform** — `Network Devices` is the closest ATT&CK
+  platform value (the one router/switch/firewall techniques are scoped
+  to), so the `cisco` file's own `platform` metadata field and in-modal
+  heading say "Network Devices" even though the tab is labeled "Cisco"
+  for consistency with this library's own component naming.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1019,16 +1079,23 @@ python3 tools/fetch_mitre_platform.py --platform Windows \
   --detections data/dhcp-detections.json
 
 python3 tools/fetch_mitre_platform.py --platform "Network Devices" \
-  --detections /path/to/a/filtered-cisco-only-detections.json \
+  --detections /path/to/a/filtered-cisco-only-escu-detections.json \
+  --detections data/cisco-detections.json \
   --output data/mitre-attack-cisco.json
 # MITRE has no "Cisco" platform value -- "Network Devices" is the closest
 # match, so --platform must be the MITRE name while --output picks the
-# vendor-facing filename/tab label. Filter the --detections file down to
-# just the entries that are genuinely Network Devices telemetry first
-# (see the Cisco bullet above) -- passing the full, multi-platform
-# data/splunk-escu-detections.json unfiltered would inflate the coverage
-# count with techniques detected by unrelated (non-Cisco) entries that
-# happen to share a technique ID.
+# vendor-facing filename/tab label. The first --detections file must be
+# filtered down to just the ESCU entries that are genuinely Network
+# Devices telemetry first (see the Cisco bullet above) -- passing the
+# full, multi-platform data/splunk-escu-detections.json unfiltered would
+# inflate the coverage count with techniques detected by unrelated
+# (non-Cisco) entries that happen to share a technique ID. The dedicated
+# data/cisco-detections.json catalogue needs no such filtering -- it's
+# 100% Network Devices-scoped by construction. Re-run this after editing
+# either --detections file to keep covered_by_library accurate; the
+# metadata.title/description get overwritten by the generator's generic
+# wording each time, so re-apply the Cisco-specific framing afterward
+# (see the git history for the exact text) if you want it back.
 ```
 
 To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
@@ -1046,7 +1113,7 @@ to the fetch script stays MITRE's own vocabulary.
 Alongside **Detections**, the page's second top-level tab is **Heat
 Coverage**: a technique × tactic matrix in the style of ATT&CK Navigator,
 except each cell is shaded by how many of this library's detections —
-summed across all twelve catalogues and every platform, not scoped to one
+summed across all thirteen catalogues and every platform, not scoped to one
 the way the ATT&CK Coverage modal is — actually reference that technique.
 It answers a different question than the coverage modal: not "does MITRE
 have an official analytic for this," but "how much of *this library's own*
@@ -1111,7 +1178,7 @@ The key fields:
 
 ### Schema differences across catalogues
 
-The twelve catalogues do **not** share one schema — each has its own file
+The thirteen catalogues do **not** share one schema — each has its own file
 under `schema/`, and the combined `index.html` view normalizes what it can
 (`_component`, `_tool`) but does not paper over every field difference.
 Three are worth knowing about if you're consuming this data programmatically
@@ -1120,32 +1187,35 @@ rather than through the UI:
 - **False-positive guidance is represented two different ways.** ESXi and
   Aria use `known_false_positives` — free-text narrative guidance (e.g.
   "baseline your backup service accounts before enabling this in
-  production"). The other ten catalogues (Red Hat, Fortinet, Dell iDRAC,
+  production"). The other eleven catalogues (Red Hat, Fortinet, Dell iDRAC,
   HPE iLO, Windows DHCP, Windows RDP, VCF, Splunk Platform, Active
-  Directory, Splunk ESCU — 3,686 entries) instead use
+  Directory, Splunk ESCU, Cisco Network Device — 3,748 entries) instead use
   `false_positive_rating`, a three-value category (`Low` / `Medium` /
   `High`) plus prose guidance spread across `tuning_guidance` and
   `investigation_steps[]`. Don't assume `known_false_positives` is present
   outside ESXi/Aria, or that `false_positive_rating` exists on those two.
 - **`type` / `status` / `method` are effectively ESXi/Aria-only.** ESXi
   populates all three; Aria populates `type`/`status` but not `method`;
-  none of the other ten catalogues populate any of the three (they use
+  none of the other eleven catalogues populate any of the three (they use
   `detection_type` and `detection_maturity` instead, which serve a similar
   role but aren't the same field or vocabulary). Filtering the *combined*
   view by these fields will only ever surface ESXi/Aria results — this is
   expected, not a bug, but worth knowing before building a facet or export
   on top of them.
-- **The Splunk ESCU catalogue's `detection_type` vocabulary is its own.**
-  Every other catalogue that populates `detection_type` uses this
-  library's locally-defined values; ESCU instead preserves the upstream
-  project's own `type` field verbatim (`TTP` / `Anomaly` / `Hunting` /
-  `Correlation`) rather than remapping it, so a `detection_type` facet
-  spanning ESCU plus the rest of the library will show two different
-  vocabularies side by side.
+- **The Splunk ESCU and Cisco Network Device catalogues' `detection_type`
+  vocabulary is shared, and different from the rest.** Every other
+  catalogue that populates `detection_type` uses this library's
+  locally-defined values; ESCU instead preserves the upstream project's
+  own `type` field verbatim (`TTP` / `Anomaly` / `Hunting` /
+  `Correlation`), and the Cisco catalogue reuses that same four-value
+  vocabulary (inferred from each search's own structure) since it's built
+  from the same MITRE Detection Analytic source material, so a `detection_type`
+  facet spanning ESCU/Cisco plus the rest of the library will show two
+  different vocabularies side by side.
 
 `query field` (`spl` vs `aria_query`) is the one difference that's
 intentional and not drift — Aria genuinely uses a different query language
-than the other ten Splunk SPL catalogues.
+than the other eleven Splunk SPL catalogues.
 
 ### Performance note: `transaction`-based correlations
 
@@ -1174,17 +1244,19 @@ of these at high volume in production, not something to fix reflexively.
    (Windows DHCP Server), `data/rdp-detections.json` (Windows RDP),
    `data/vcf-detections.json` (VMware Cloud Foundation),
    `data/splunk-detections.json` (Splunk Platform self-protection),
-   `data/ad-detections.json` (Active Directory), or
+   `data/ad-detections.json` (Active Directory),
    `data/splunk-escu-detections.json` (Splunk ESCU — see the note below
-   before adding to this one), validating against the matching schema
-   file in `schema/`. Detection IDs must be unique **across all twelve
-   files**, not just within one — `tools/build.py` enforces this at
-   build time (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE
+   before adding to this one), or `data/cisco-detections.json` (Cisco
+   Network Device — MITRE-gap-fill methodology, see
+   `docs/cisco-detection-library.md`), validating against the matching
+   schema file in `schema/`. Detection IDs must be unique **across all
+   thirteen files**, not just within one — `tools/build.py` enforces this
+   at build time (see the `HREDFISH-###` vs. `REDFISH-###` note in the HPE
    iLO section above for why this matters with cross-vendor standards
    like Redfish).
 2. If you need to change the combined page itself (layout, filters,
-   styling), edit `index.template.html` — leave all twelve `__..._JSON__`
-   markers in place.
+   styling), edit `index.template.html` — leave all thirteen
+   `__..._JSON__` markers in place.
 3. Regenerate the static page:
 
    ```bash

@@ -579,7 +579,7 @@
 
 <section class="heat-view" id="heat-view" hidden>
   <p class="heat-intro">Every technique in the Enterprise ATT&amp;CK matrix, shaded by how many of
-    this library's detections — summed across all twelve catalogues and every platform, not just
+    this library's detections — summed across all thirteen catalogues and every platform, not just
     one — actually map to it. Dashed cells are gaps: zero detections reference that technique today.
     Sub-techniques roll up into their parent (T1098.001/.002/&hellip; all count toward T1098) —
     hover or focus a cell for the breakdown.</p>
@@ -624,7 +624,7 @@
 <div class="toast" id="toast"></div>
 
 <footer>
-  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, and Splunk Security Content (ESCU) Windows Endpoint Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying. The Splunk ESCU catalogue is a curated subset of <a href="https://github.com/splunk/security_content" target="_blank" rel="noopener">Splunk's own security_content project</a> (Apache License 2.0) &mdash; see its entries' <code>source_url</code>/<code>source_author</code> fields for full attribution.
+  Threat Detection Library &mdash; combines the ESXi/Splunk SPL, VMware Aria Operations for Logs, Red Hat (RHEL, IdM/IPA/FreeIPA, Ansible Automation Platform, Satellite), Fortinet Security Fabric, Dell iDRAC, HPE iLO, Windows DHCP Server, Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &amp; Splunk Enterprise self-protection), Active Directory Domain Services, Splunk Security Content (ESCU), and Cisco Network Device (MITRE ATT&amp;CK-driven gap fill) Splunk SPL catalogues into one filterable view. Community threat-detection content, provided as-is for detection engineering and research. Validate every search against your own log formats and field extractions before deploying. The Splunk ESCU catalogue is a curated subset of <a href="https://github.com/splunk/security_content" target="_blank" rel="noopener">Splunk's own security_content project</a> (Apache License 2.0) &mdash; see its entries' <code>source_url</code>/<code>source_author</code> fields for full attribution.
   &middot; <a href="https://github.com/adamliq/Threat-detection-library" target="_blank" rel="noopener">Source on GitHub</a>
 </footer>
 
@@ -640,6 +640,7 @@
 <script type="application/json" id="splunk-detections-data">__SPLUNK_DETECTIONS_JSON__</script>
 <script type="application/json" id="ad-detections-data">__AD_DETECTIONS_JSON__</script>
 <script type="application/json" id="escu-detections-data">__ESCU_DETECTIONS_JSON__</script>
+<script type="application/json" id="cisco-detections-data">__CISCO_DETECTIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -656,8 +657,9 @@
   var SPLUNK_ENTRIES = JSON.parse(document.getElementById("splunk-detections-data").textContent);
   var AD_ENTRIES = JSON.parse(document.getElementById("ad-detections-data").textContent);
   var ESCU_ENTRIES = JSON.parse(document.getElementById("escu-detections-data").textContent);
+  var CISCO_ENTRIES = JSON.parse(document.getElementById("cisco-detections-data").textContent);
 
-  // Normalize all twelve catalogues into one array. Every original field is
+  // Normalize all thirteen catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
   // d.aria_query, d.cli_reference, d.vmw_id, d.risk_scoring, etc.); _tool
   // and _component are added purely for unified faceting/search/display.
@@ -706,6 +708,10 @@
     d._component = d.component || "";
     return d;
   })).concat(ESCU_ENTRIES.map(function (d) {
+    d._tool = "Splunk SPL";
+    d._component = d.component || "";
+    return d;
+  })).concat(CISCO_ENTRIES.map(function (d) {
     d._tool = "Splunk SPL";
     d._component = d.component || "";
     return d;
@@ -949,7 +955,8 @@
       " VMware Cloud Foundation Splunk SPL + " + SPLUNK_ENTRIES.length +
       " Splunk Platform Splunk SPL + " + AD_ENTRIES.length +
       " Active Directory Splunk SPL + " + ESCU_ENTRIES.length +
-      " Splunk ESCU Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
+      " Splunk ESCU Splunk SPL + " + CISCO_ENTRIES.length +
+      " Cisco Network Device Splunk SPL) · " + allTactics().length + " ATT&CK tactics";
     var coverageParts = COVERAGE_PLATFORMS.filter(function (p) { return MITRE_DATA[p.id]; }).map(function (p) {
       var m = MITRE_DATA[p.id].metadata;
       return m.techniques_covered_by_library + "/" + m.technique_count + " " + p.label + " ATT&CK techniques covered";
@@ -1427,7 +1434,8 @@
     ["Red Hat", REDHAT_ENTRIES], ["Fortinet", FORTINET_ENTRIES], ["Dell iDRAC", IDRAC_ENTRIES],
     ["HPE iLO", ILO_ENTRIES], ["Windows DHCP", DHCP_ENTRIES], ["Windows RDP", RDP_ENTRIES],
     ["VMware Cloud Foundation", VCF_ENTRIES], ["Splunk Platform", SPLUNK_ENTRIES],
-    ["Active Directory", AD_ENTRIES], ["Splunk ESCU", ESCU_ENTRIES]
+    ["Active Directory", AD_ENTRIES], ["Splunk ESCU", ESCU_ENTRIES],
+    ["Cisco Network Device", CISCO_ENTRIES]
   ];
   var idToCatalogue = {};
   HEAT_CATALOGUE_SOURCES.forEach(function (pair) {
