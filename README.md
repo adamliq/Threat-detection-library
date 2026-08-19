@@ -913,6 +913,7 @@ data/ad-detections.json        Canonical source of truth for the Active Director
 data/splunk-escu-detections.json  Curated, schema-converted subset of splunk/security_content's Windows endpoint detections.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 data/mitre-attack-windows.json  MITRE ATT&CK Windows techniques + official Detection Analytics, coverage computed across the AD/RDP/DHCP catalogues.
+data/mitre-attack-cisco.json    MITRE ATT&CK "Network Devices" platform techniques + official Detection Analytics, coverage computed across the ESCU catalogue's Cisco Network/ASA/IOS XE/SD-WAN entries.
 data/mitre-attack-universe.json  Full ATT&CK Enterprise technique/tactic universe (all platforms, parent-technique level) backing the Heat Coverage tab.
 docs/aria-catalogue-source.md  Human-authored source markdown for the Aria catalogue.
 docs/redhat-audit-policy.md    Consolidated auditd ruleset the Red Hat catalogue's RHEL detections depend on, by category.
@@ -955,9 +956,9 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi` and `windows`), each fetched independently at runtime — they are
-*not* baked into the page, so any one can be refreshed without a full
-rebuild. Each is built straight from MITRE's official STIX corpus
+`esxi`, `windows`, and `cisco`), each fetched independently at runtime —
+they are *not* baked into the page, so any one can be refreshed without a
+full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
 platform:
 
@@ -967,7 +968,21 @@ platform:
   For `esxi`, coverage is computed across `data/detections.json` and
   `data/aria-detections.json`; for `windows`, across
   `data/ad-detections.json`, `data/rdp-detections.json`, and
-  `data/dhcp-detections.json` — the three Windows-scoped catalogues.
+  `data/dhcp-detections.json` — the three Windows-scoped catalogues; for
+  `cisco`, across the 70 `data/splunk-escu-detections.json` entries whose
+  `component` is `"Cisco Network"`, `"Cisco ASA"`, `"Cisco IOS XE"`, or
+  `"Cisco SD-WAN"` — deliberately excluding this catalogue's other
+  Cisco-branded components (`"Cisco Duo"`, `"Cisco Isovalent"`, `"Cisco
+  NVM"`), which are genuinely Cisco products but not **Network Devices**
+  platform telemetry (MFA/identity, container/eBPF, and a Windows
+  endpoint agent, respectively) — including them would inflate the
+  coverage count with techniques this library doesn't actually detect via
+  network-device telemetry. **MITRE has no dedicated "Cisco" platform** —
+  `Network Devices` is the closest ATT&CK platform value (the one
+  router/switch/firewall techniques are scoped to), so the `cisco` file's
+  own `platform` metadata field and in-modal heading say "Network
+  Devices" even though the tab is labeled "Cisco" for consistency with
+  this library's own component naming.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1002,13 +1017,29 @@ python3 tools/fetch_mitre_platform.py --platform Windows \
   --detections data/ad-detections.json \
   --detections data/rdp-detections.json \
   --detections data/dhcp-detections.json
+
+python3 tools/fetch_mitre_platform.py --platform "Network Devices" \
+  --detections /path/to/a/filtered-cisco-only-detections.json \
+  --output data/mitre-attack-cisco.json
+# MITRE has no "Cisco" platform value -- "Network Devices" is the closest
+# match, so --platform must be the MITRE name while --output picks the
+# vendor-facing filename/tab label. Filter the --detections file down to
+# just the entries that are genuinely Network Devices telemetry first
+# (see the Cisco bullet above) -- passing the full, multi-platform
+# data/splunk-escu-detections.json unfiltered would inflate the coverage
+# count with techniques detected by unrelated (non-Cisco) entries that
+# happen to share a technique ID.
 ```
 
 To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
 script with `--platform Linux --detections data/redhat-detections.json`,
 then add `{ id: "Linux", label: "Linux", file: "data/mitre-attack-linux.json" }`
 to the `COVERAGE_PLATFORMS` array near the top of the MITRE coverage
-section in `index.template.html` and rebuild.
+section in `index.template.html` and rebuild. If the platform's MITRE
+name and this library's preferred label don't match 1:1 (as with Cisco/
+Network Devices above), `id`/`file` should reflect the vendor-facing name
+you want as the tab label and filename, while the `--platform` flag passed
+to the fetch script stays MITRE's own vocabulary.
 
 ### Heat Coverage tab
 
