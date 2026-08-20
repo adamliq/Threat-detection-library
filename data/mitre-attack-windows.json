@@ -1,7 +1,7 @@
 {
   "metadata": {
     "title": "MITRE ATT&CK Enterprise - Windows Platform Analytics",
-    "description": "Techniques and formal MITRE ATT&CK Detection Analytics scoped to MITRE's 'Windows' platform, extracted from the official MITRE ATT&CK Enterprise STIX dataset. Loaded by the Threat Detection Library app to show ATT&CK coverage for this library's Windows-scoped content -- data/ad-detections.json, data/rdp-detections.json, and data/dhcp-detections.json (the three dedicated Windows catalogues), plus the 1,236 data/splunk-escu-detections.json entries whose component is 'Windows Endpoint' or 'Windows Network Telemetry' -- ESCU's genuinely Windows-OS-scoped content, which this file did not originally cross-reference (it predates the ESCU catalogue) and was undercounting the true coverage by 174 techniques as a result. Coverage is now 261/474, not the previously reported 87/474.",
+    "description": "Techniques and formal MITRE ATT&CK Detection Analytics scoped to MITRE's 'Windows' platform, extracted from the official MITRE ATT&CK Enterprise STIX dataset. Loaded by the Threat Detection Library app to show ATT&CK coverage for this library's Windows-scoped content -- data/ad-detections.json, data/rdp-detections.json, and data/dhcp-detections.json (the three dedicated Windows catalogues), the 1,236 data/splunk-escu-detections.json entries whose component is 'Windows Endpoint' or 'Windows Network Telemetry', and the dedicated 73-entry data/windows-endpoint-detections.json catalogue built specifically to close part of the gap this file identified. This file's cross-reference historically undercounted coverage by 174 techniques (it predates the ESCU catalogue and was never re-cross-referenced against it until that was fixed as a standalone correction). Coverage is now 334/474.",
     "source": "https://github.com/mitre/cti (enterprise-attack/enterprise-attack.json)",
     "attack_version_reference": "https://attack.mitre.org/resources/updates/",
     "attack_spec_version": "3.3.0",
@@ -9,7 +9,7 @@
     "retrieved": "2026-08-20",
     "technique_count": 474,
     "analytic_count": 475,
-    "techniques_covered_by_library": 261,
+    "techniques_covered_by_library": 334,
     "tactic_breakdown": {
       "Initial Access": 21,
       "Execution": 43,
@@ -266,7 +266,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1007",
@@ -324,7 +324,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1011",
@@ -458,7 +458,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1018",
@@ -666,7 +666,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1027.002",
@@ -1083,7 +1083,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1036.002",
@@ -1140,7 +1140,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1036.005",
@@ -1178,7 +1178,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1036.008",
@@ -1221,7 +1221,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1036.012",
@@ -1262,7 +1262,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1037.001",
@@ -1298,7 +1298,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1039",
@@ -1810,7 +1810,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1056.001",
@@ -1831,7 +1831,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1056.002",
@@ -1871,7 +1871,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1056.004",
@@ -1891,7 +1891,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1057",
@@ -2270,7 +2270,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1070.008",
@@ -2310,7 +2310,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1070.010",
@@ -2330,7 +2330,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1071",
@@ -2708,7 +2708,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1087",
@@ -2789,7 +2789,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1090",
@@ -3250,7 +3250,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1110.003",
@@ -3493,7 +3493,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1123",
@@ -3954,7 +3954,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1137.002",
@@ -3972,7 +3972,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1137.003",
@@ -3990,7 +3990,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1137.004",
@@ -4008,7 +4008,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1137.005",
@@ -4026,7 +4026,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1137.006",
@@ -4044,7 +4044,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1140",
@@ -4083,7 +4083,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1176.001",
@@ -4121,7 +4121,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1185",
@@ -4515,7 +4515,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1205.001",
@@ -4537,7 +4537,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1205.002",
@@ -4558,7 +4558,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1207",
@@ -4616,7 +4616,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1212",
@@ -4731,7 +4731,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1216.002",
@@ -4748,7 +4748,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1217",
@@ -4767,7 +4767,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1218",
@@ -5026,7 +5026,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1219",
@@ -5136,7 +5136,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1222",
@@ -5212,7 +5212,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1480.002",
@@ -5576,7 +5576,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1497.002",
@@ -5834,7 +5834,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1505.003",
@@ -5888,7 +5888,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1518",
@@ -5929,7 +5929,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1518.002",
@@ -5948,7 +5948,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1529",
@@ -6034,7 +6034,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1542",
@@ -6247,7 +6247,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1546.008",
@@ -6301,7 +6301,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1546.011",
@@ -6355,7 +6355,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1546.015",
@@ -6393,7 +6393,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1546.018",
@@ -6470,7 +6470,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1547.003",
@@ -6506,7 +6506,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1547.005",
@@ -6560,7 +6560,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1547.010",
@@ -6848,7 +6848,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1553.002",
@@ -6866,7 +6866,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1553.003",
@@ -6937,7 +6937,7 @@
       "analytic_count_total": 2,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1554",
@@ -7115,7 +7115,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1556.006",
@@ -7182,7 +7182,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1557",
@@ -7241,7 +7241,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1557.003",
@@ -7632,7 +7632,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1564.003",
@@ -7801,7 +7801,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1565",
@@ -8547,7 +8547,7 @@
       "analytic_count_total": 7,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1606.001",
@@ -8568,7 +8568,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1606.002",
@@ -8629,7 +8629,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1614.001",
@@ -8648,7 +8648,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1615",
@@ -8766,7 +8766,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1653",
@@ -8786,7 +8786,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1654",
@@ -8908,7 +8908,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1669",
@@ -8948,7 +8948,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1674",
@@ -9024,7 +9024,7 @@
       "analytic_count_total": 4,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1684",
@@ -9145,7 +9145,7 @@
       "analytic_count_total": 3,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1685.005",
@@ -9200,7 +9200,7 @@
       "analytic_count_total": 1,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1687",
@@ -9221,7 +9221,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     },
     {
       "attack_id": "T1688",
@@ -9278,7 +9278,7 @@
       "analytic_count_total": 5,
       "analytic_count_platform": 1,
       "has_platform_analytic": true,
-      "covered_by_library": false
+      "covered_by_library": true
     }
   ],
   "analytics": [
