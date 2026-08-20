@@ -1066,7 +1066,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, and `linux`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, `linux`, and `iaas`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1184,7 +1184,26 @@ platform:
   Windows' 474) and were, until this batch, complete blind spots in this
   library's coverage view — macOS remains one, with only 13 ESCU entries
   scoped to it against 356 techniques, a candidate for a future coverage
-  batch of its own.
+  batch of its own. For `iaas`, across the 140
+  `data/splunk-escu-detections.json` entries whose `component` is
+  `"AWS"`, `"Azure"`, or `"Google Cloud Platform"` — cloud
+  infrastructure control-plane and resource telemetry (compute, storage,
+  networking, and identity/IAM management within those clouds), as
+  distinct from the SaaS applications or Identity Provider services that
+  also run on top of the same clouds — deliberately excluding this
+  catalogue's endpoint-OS, network-appliance, and non-cloud-provider
+  SaaS/identity components (Windows Endpoint, Cisco Network/ASA/IOS XE,
+  Microsoft 365, Okta, PingID, and others) even where a shared,
+  broadly-applicable technique ID (e.g. T1078 Valid Accounts) would
+  otherwise inflate the coverage count; the naive, unfiltered whole-ESCU
+  cross-reference would report 62/104 covered — the curated,
+  genuinely-IaaS-scoped set gives the accurate figure: 31/104. As with
+  `identity-provider`, `"AWS"`, `"Azure"`, and `"Google Cloud Platform"`
+  are each shared, in part, with the `saas`/`identity-provider` coverage
+  files — the same component can legitimately contain IaaS-control-plane
+  detections (S3/storage, CloudTrail, security-group changes) alongside
+  identity-layer detections (sign-in, MFA), since MITRE itself scopes
+  many underlying techniques to multiple platforms simultaneously.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1316,6 +1335,23 @@ python3 tools/fetch_mitre_platform.py --platform Linux \
 # description get overwritten by the generator's generic wording each
 # time, so re-apply the Linux-specific framing afterward (see the git
 # history for the exact text) if you want it back.
+
+python3 tools/fetch_mitre_platform.py --platform IaaS \
+  --detections /path/to/a/filtered-iaas-only-escu-detections.json \
+  --output data/mitre-attack-iaas.json
+# "IaaS" is MITRE's own platform name; --output picks the vendor-facing
+# filename. The --detections file must first be filtered down to just
+# the ESCU entries that genuinely detect cloud-infrastructure
+# control-plane telemetry (AWS, Azure, Google Cloud Platform -- see the
+# iaas bullet above); passing the full, multi-platform
+# data/splunk-escu-detections.json unfiltered would inflate the
+# coverage count with non-cloud-provider entries that happen to share a
+# technique ID (naive 62/104 vs. the accurate 31/104). Re-run after
+# editing that filtered set to keep covered_by_library accurate; the
+# metadata.title/description get overwritten by the generator's
+# generic wording each time, so re-apply the IaaS-specific framing
+# afterward (see the git history for the exact text) if you want it
+# back.
 ```
 
 To add a new platform (e.g. `macOS`, the largest remaining gap in this
