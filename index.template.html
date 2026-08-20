@@ -542,7 +542,7 @@
         <span>Filters</span>
         <span class="filter-count-badge" id="filter-count-badge" hidden>0</span>
       </button>
-      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage by platform (ESXi, Windows, Cisco, SaaS, Identity Provider), including official Detection Analytics and log-source Data Components">ATT&amp;CK Coverage</button>
+      <button class="btn" id="coverage-btn" title="MITRE ATT&amp;CK coverage by platform (ESXi, Windows, Cisco, SaaS, Identity Provider, Containers), including official Detection Analytics and log-source Data Components">ATT&amp;CK Coverage</button>
       <button class="btn" id="export-btn" title="Export current results as JSON">Export</button>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
         <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -1199,7 +1199,8 @@
     { id: "Windows", label: "Windows", file: "data/mitre-attack-windows.json" },
     { id: "Cisco", label: "Cisco", file: "data/mitre-attack-cisco.json" },
     { id: "SaaS", label: "SaaS", file: "data/mitre-attack-saas.json" },
-    { id: "IdentityProvider", label: "Identity Provider", file: "data/mitre-attack-identity-provider.json" }
+    { id: "IdentityProvider", label: "Identity Provider", file: "data/mitre-attack-identity-provider.json" },
+    { id: "Containers", label: "Containers", file: "data/mitre-attack-containers.json" }
   ];
   var MITRE_DATA = {};                        // platform id -> loaded coverage JSON (absent until fetched, or if fetch failed)
   var coveragePlatform = COVERAGE_PLATFORMS[0].id;

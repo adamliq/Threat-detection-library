@@ -1012,7 +1012,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, `saas`, and `identity-provider`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, and `containers`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1083,7 +1083,23 @@ platform:
   T1621 Multi-Factor Request Generation) to multiple platforms
   simultaneously — the filtering here is by individual technique/entry
   relevance to the target platform, not an assumption that a component
-  belongs to exactly one platform.
+  belongs to exactly one platform. For `containers`, across the 28
+  `data/splunk-escu-detections.json` entries whose `component` is
+  `"Kubernetes"` or `"Cisco Isovalent"` — genuine container-orchestration
+  (Kubernetes API/pod/workload events) and container-runtime
+  (eBPF/Cilium-based host-escape, kprobe, and offensive-tool-in-pod
+  detection) telemetry — deliberately excluding this catalogue's host-OS,
+  cloud-control-plane, and network-appliance components (Windows Endpoint,
+  Linux, Cisco Network/ASA/IOS XE, AWS, Azure, Microsoft 365, and many
+  others) even where a shared, broadly-applicable technique ID (e.g.
+  T1078 Valid Accounts, T1190 Exploit Public-Facing Application) would
+  otherwise inflate the coverage count; the effect here is the largest of
+  any platform batch so far — including them naively raises the covered
+  count from 8/48 to a wildly misleading 36/48 without those entries
+  actually detecting container-orchestration or container-runtime
+  telemetry. Coverage stands at 8/48, the widest gap of any platform in
+  this coverage set — a candidate for a future dedicated container
+  detection catalogue.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1172,6 +1188,24 @@ python3 tools/fetch_mitre_platform.py --platform "Identity Provider" \
 # wording each time, so re-apply the identity-provider-specific framing
 # afterward (see the git history for the exact text) if you want it
 # back.
+
+python3 tools/fetch_mitre_platform.py --platform Containers \
+  --detections /path/to/a/filtered-containers-only-escu-detections.json \
+  --output data/mitre-attack-containers.json
+# "Containers" is MITRE's own platform name; --output picks the
+# vendor-facing filename. The --detections file must first be filtered
+# down to just the ESCU entries that genuinely detect container-
+# orchestration/runtime telemetry (Kubernetes, Cisco Isovalent -- see
+# the containers bullet above); passing the full, multi-platform
+# data/splunk-escu-detections.json unfiltered would inflate the
+# coverage count with host-OS/cloud-control-plane entries that happen
+# to share a technique ID (this platform has the largest naive-vs-
+# curated gap of any batch so far: 36/48 vs. the accurate 8/48). Re-run
+# after editing that filtered set to keep covered_by_library accurate;
+# the metadata.title/description get overwritten by the generator's
+# generic wording each time, so re-apply the containers-specific
+# framing afterward (see the git history for the exact text) if you
+# want it back.
 ```
 
 To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
