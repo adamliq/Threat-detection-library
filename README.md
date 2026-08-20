@@ -1024,8 +1024,17 @@ platform:
   For `esxi`, coverage is computed across `data/detections.json` and
   `data/aria-detections.json`; for `windows`, across
   `data/ad-detections.json`, `data/rdp-detections.json`, and
-  `data/dhcp-detections.json` — the three Windows-scoped catalogues; for
-  `cisco`, across the 70 `data/splunk-escu-detections.json` entries whose
+  `data/dhcp-detections.json` — the three dedicated Windows catalogues —
+  plus the 1,236 `data/splunk-escu-detections.json` entries whose
+  `component` is `"Windows Endpoint"` or `"Windows Network Telemetry"`.
+  That ESCU cross-reference was missing for a long stretch of this
+  project's history (the `windows` coverage file predates the ESCU
+  catalogue and was never re-cross-referenced against it), which
+  undercounted true coverage by 174 techniques — 87/474 reported vs. the
+  accurate 261/474. Fixed as a standalone correction rather than folded
+  into a detection-authoring batch, since it changes no detection content,
+  only what the coverage file measures; for `cisco`, across the 70
+  `data/splunk-escu-detections.json` entries whose
   `component` is `"Cisco Network"`, `"Cisco ASA"`, `"Cisco IOS XE"`, or
   `"Cisco SD-WAN"`, plus the entire 62-entry `data/cisco-detections.json`
   catalogue that was built specifically to close the gap this file
