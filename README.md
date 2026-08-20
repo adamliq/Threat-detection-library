@@ -1012,7 +1012,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, and `saas`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, and `identity-provider`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1061,7 +1061,29 @@ platform:
   (Google Workspace, GitHub) no dedicated platform tag of their own, so
   their techniques fall under this generic "SaaS" value alongside
   Microsoft 365, which additionally carries its own separate "Office 365"
-  platform tag. Coverage stands at 27/70.
+  platform tag. Coverage stands at 27/70. For `identity-provider`, across
+  the 259 `data/splunk-escu-detections.json` entries whose `component` is
+  `"Okta"`, `"PingID"`, `"Cisco Duo"`, `"Azure"`, `"Microsoft 365"`,
+  `"AWS"`, or `"Google Cloud Platform"` — the entries that detect
+  identity-provider-layer events (sign-in, MFA/SSO, federation,
+  directory/service-principal, and consent/authorization activity),
+  as distinct from the SaaS/IaaS *applications* that rely on those
+  identity providers — deliberately excluding this catalogue's
+  endpoint-OS and generic-infrastructure components (Windows Endpoint,
+  Linux, macOS, Cisco Network/ASA/IOS XE, Kubernetes, and others) even
+  where a shared, broadly-applicable technique ID (e.g. T1078 Valid
+  Accounts) would otherwise inflate the coverage count; including them
+  naively raises the covered count from 27/48 to a misleading 37/48
+  without those entries actually detecting identity-provider telemetry.
+  Note that `"Azure"` and `"Microsoft 365"` are each shared, in part,
+  with the `saas` file above — the same ESCU component can contain both
+  genuinely SaaS-application detections (email/collaboration) and
+  genuinely identity-provider detections (Entra ID sign-in/MFA/consent),
+  since MITRE itself scopes many of the underlying techniques (e.g.
+  T1621 Multi-Factor Request Generation) to multiple platforms
+  simultaneously — the filtering here is by individual technique/entry
+  relevance to the target platform, not an assumption that a component
+  belongs to exactly one platform.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1132,6 +1154,24 @@ python3 tools/fetch_mitre_platform.py --platform SaaS \
 # get overwritten by the generator's generic wording each time, so
 # re-apply the SaaS-specific framing afterward (see the git history for
 # the exact text) if you want it back.
+
+python3 tools/fetch_mitre_platform.py --platform "Identity Provider" \
+  --detections /path/to/a/filtered-identity-provider-only-escu-detections.json \
+  --output data/mitre-attack-identity-provider.json
+# "Identity Provider" is MITRE's own platform name (quote it -- it
+# contains a space); --output picks the vendor-facing filename. The
+# --detections file must first be filtered down to just the ESCU
+# entries that genuinely detect identity-provider-layer events (Okta,
+# PingID, Cisco Duo, Azure, Microsoft 365, AWS, Google Cloud Platform --
+# see the identity-provider bullet above); passing the full,
+# multi-platform data/splunk-escu-detections.json unfiltered would
+# inflate the coverage count with endpoint-OS/infrastructure entries
+# that happen to share a technique ID. Re-run after editing that
+# filtered set to keep covered_by_library accurate; the
+# metadata.title/description get overwritten by the generator's generic
+# wording each time, so re-apply the identity-provider-specific framing
+# afterward (see the git history for the exact text) if you want it
+# back.
 ```
 
 To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
