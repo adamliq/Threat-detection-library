@@ -1066,7 +1066,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, `linux`, `iaas`, and `office-suite`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, `linux`, `iaas`, `office-suite`, and `macos`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1182,9 +1182,8 @@ platform:
   set gives the accurate figure: 99/355. Linux and macOS are each nearly
   as large as the entire Windows platform (355/356 techniques vs.
   Windows' 474) and were, until this batch, complete blind spots in this
-  library's coverage view — macOS remains one, with only 13 ESCU entries
-  scoped to it against 356 techniques, a candidate for a future coverage
-  batch of its own. For `iaas`, across the 140
+  library's coverage view — see the `macos` bullet below for how thin
+  that platform's coverage turned out to be. For `iaas`, across the 140
   `data/splunk-escu-detections.json` entries whose `component` is
   `"AWS"`, `"Azure"`, or `"Google Cloud Platform"` — cloud
   infrastructure control-plane and resource telemetry (compute, storage,
@@ -1220,6 +1219,23 @@ platform:
   accurate figure: 26/78. As with iaas/identity-provider, `"Microsoft
   365"` and `"Microsoft 365 Copilot"` are each shared, in part, with
   the `saas`/`identity-provider` coverage files, for the same reason.
+  For `macos`, across the 13 `data/splunk-escu-detections.json`
+  entries whose `component` is `"macOS"` — the only genuinely
+  macOS-scoped content in this catalogue — deliberately excluding
+  every other component even where a shared, broadly-applicable
+  technique ID (e.g. T1059 Command and Scripting Interpreter, T1078
+  Valid Accounts) would otherwise inflate the coverage count; the
+  naive, unfiltered whole-ESCU cross-reference here is the most
+  extreme example yet of the pattern this library has documented for
+  every platform — it would report a wildly misleading 191/356
+  covered, 148 of those "covered" via Windows Endpoint content alone,
+  which has zero macOS applicability. The curated, genuinely-scoped
+  set gives the accurate figure: **13/356** — the thinnest coverage of
+  any platform this library tracks, and a real blind spot: macOS is
+  nearly as large a platform as Windows (356 vs. 474 techniques) with
+  essentially no dedicated content here, a strong candidate for a
+  future detection-authoring batch (the same "MITRE-driven gap fill"
+  pattern used for the Cisco and Windows Endpoint catalogues).
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1386,17 +1402,37 @@ python3 tools/fetch_mitre_platform.py --platform "Office Suite" \
 # generic wording each time, so re-apply the Office-Suite-specific
 # framing afterward (see the git history for the exact text) if you
 # want it back.
+
+python3 tools/fetch_mitre_platform.py --platform "macOS" \
+  --detections /path/to/a/filtered-macos-only-escu-detections.json \
+  --output data/mitre-attack-macos.json
+# The --detections file must first be filtered down to just the ESCU
+# entries whose component is "macOS" (see the macos bullet above) --
+# passing the full, multi-platform data/splunk-escu-detections.json
+# unfiltered would produce a wildly misleading result here in
+# particular: 191/356 vs. the accurate 13/356, since 148 of those
+# false "covered" techniques would come from Windows Endpoint content
+# alone. Re-run after editing that filtered set to keep
+# covered_by_library accurate; the metadata.title/description get
+# overwritten by the generator's generic wording each time, so
+# re-apply the macOS-specific framing afterward (see the git history
+# for the exact text) if you want it back.
 ```
 
-To add a new platform (e.g. `macOS`, the largest remaining gap in this
-library's coverage view — see the linux bullet above), run the script
-with `--platform macOS --detections <filtered macOS-scoped detections>`,
-then add `{ id: "macOS", label: "macOS", file: "data/mitre-attack-macos.json" }`
-to the `COVERAGE_PLATFORMS` array near the top of the MITRE coverage
-section in `index.template.html` and rebuild. If the platform's MITRE
-name and this library's preferred label don't match 1:1 (as with Cisco/
-Network Devices above), `id`/`file` should reflect the vendor-facing name
-you want as the tab label and filename, while the `--platform` flag passed
+Every real MITRE ATT&CK Detection-Analytics platform is now tracked
+except `PRE` (Reconnaissance/Resource Development against
+attacker-controlled infrastructure -- verified unobservable via any of
+this library's internal telemetry, see the git history around the
+platform-research session that ruled it out). To add a future one
+anyway, or to re-add a platform after a MITRE taxonomy change, run the
+script with `--platform <MitreName> --detections <filtered
+platform-scoped detections>`, then add `{ id: "<Id>", label:
+"<Label>", file: "data/mitre-attack-<slug>.json" }` to the
+`COVERAGE_PLATFORMS` array near the top of the MITRE coverage section
+in `index.template.html` and rebuild. If the platform's MITRE name and
+this library's preferred label don't match 1:1 (as with Cisco/Network
+Devices above), `id`/`file` should reflect the vendor-facing name you
+want as the tab label and filename, while the `--platform` flag passed
 to the fetch script stays MITRE's own vocabulary.
 
 ### Heat Coverage tab
