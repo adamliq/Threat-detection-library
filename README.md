@@ -1012,7 +1012,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, and `cisco`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, and `saas`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1042,7 +1042,26 @@ platform:
   platform value (the one router/switch/firewall techniques are scoped
   to), so the `cisco` file's own `platform` metadata field and in-modal
   heading say "Network Devices" even though the tab is labeled "Cisco"
-  for consistency with this library's own component naming.
+  for consistency with this library's own component naming. For `saas`,
+  across the 157 `data/splunk-escu-detections.json` entries whose
+  `component` is `"Microsoft 365"`, `"Microsoft 365 Copilot"`, `"Okta"`,
+  `"PingID"`, `"Zscaler"`, `"GitHub"`, `"Google Workspace"`, or `"Cisco
+  Duo"` — the entries that genuinely detect cloud-delivered,
+  browser/API-accessed application telemetry — deliberately excluding
+  this catalogue's self-hosted/on-premises-appliance components (Ivanti,
+  Citrix, Atlassian Confluence, JetBrains TeamCity, Adobe ColdFusion,
+  CrushFTP, Apache Tomcat, ConnectWise ScreenConnect, Microsoft
+  SharePoint/Exchange, VMware, PTC Windchill) even though several share a
+  broadly-scoped technique ID (e.g. T1078 Valid Accounts) with genuine
+  SaaS techniques; including them naively raises the covered count from
+  27/70 to a misleading 40/70 without those entries actually detecting
+  SaaS-application telemetry. Unlike `cisco`, **"SaaS" is a real, distinct
+  MITRE platform value** (`x_mitre_platforms: "SaaS"`) — no naming
+  workaround was needed — though MITRE gives some major SaaS vendors
+  (Google Workspace, GitHub) no dedicated platform tag of their own, so
+  their techniques fall under this generic "SaaS" value alongside
+  Microsoft 365, which additionally carries its own separate "Office 365"
+  platform tag. Coverage stands at 27/70.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1096,6 +1115,23 @@ python3 tools/fetch_mitre_platform.py --platform "Network Devices" \
 # metadata.title/description get overwritten by the generator's generic
 # wording each time, so re-apply the Cisco-specific framing afterward
 # (see the git history for the exact text) if you want it back.
+
+python3 tools/fetch_mitre_platform.py --platform SaaS \
+  --detections /path/to/a/filtered-saas-only-escu-detections.json \
+  --output data/mitre-attack-saas.json
+# "SaaS" is MITRE's own platform name, so no --output workaround is
+# needed there -- it's passed only for an explicit, predictable filename.
+# The --detections file must first be filtered down to just the ESCU
+# entries that are genuinely SaaS-application telemetry (Microsoft 365,
+# Microsoft 365 Copilot, Okta, PingID, Zscaler, GitHub, Google Workspace,
+# Cisco Duo -- see the saas bullet above); passing the full,
+# multi-platform data/splunk-escu-detections.json unfiltered would
+# inflate the coverage count with self-hosted/on-prem entries that
+# happen to share a technique ID. Re-run after editing that filtered set
+# to keep covered_by_library accurate; the metadata.title/description
+# get overwritten by the generator's generic wording each time, so
+# re-apply the SaaS-specific framing afterward (see the git history for
+# the exact text) if you want it back.
 ```
 
 To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
