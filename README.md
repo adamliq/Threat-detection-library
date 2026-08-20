@@ -1066,7 +1066,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, and `containers`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, and `linux`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1168,7 +1168,23 @@ platform:
   actually detecting container-orchestration or container-runtime
   telemetry. Coverage stands at 8/48, the widest gap of any platform in
   this coverage set — a candidate for a future dedicated container
-  detection catalogue.
+  detection catalogue. For `linux`, across the 188
+  `data/splunk-escu-detections.json` entries whose `component` is
+  `"Linux"`, plus the entire 171-entry `data/redhat-detections.json`
+  catalogue (RHEL, Red Hat IdM/IPA/FreeIPA, Ansible Automation Platform,
+  Satellite — all built on Linux/RHEL, so genuinely Linux-platform-scoped)
+  — deliberately excluding this catalogue's other components (Windows
+  Endpoint, Cisco, cloud-identity, macOS, and the rest) even where a
+  shared, broadly-applicable technique ID (e.g. T1059 Command and
+  Scripting Interpreter, T1078 Valid Accounts) would otherwise inflate
+  the coverage count; the naive, unfiltered whole-ESCU cross-reference
+  would report 194/355 covered — the curated, genuinely-Linux-scoped
+  set gives the accurate figure: 99/355. Linux and macOS are each nearly
+  as large as the entire Windows platform (355/356 techniques vs.
+  Windows' 474) and were, until this batch, complete blind spots in this
+  library's coverage view — macOS remains one, with only 13 ESCU entries
+  scoped to it against 356 techniques, a candidate for a future coverage
+  batch of its own.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1285,11 +1301,27 @@ python3 tools/fetch_mitre_platform.py --platform Containers \
 # generic wording each time, so re-apply the containers-specific
 # framing afterward (see the git history for the exact text) if you
 # want it back.
+
+python3 tools/fetch_mitre_platform.py --platform Linux \
+  --detections data/redhat-detections.json \
+  --detections /path/to/a/filtered-linux-only-escu-detections.json
+# The second --detections file must be filtered down to just the ESCU
+# entries whose component is "Linux" (see the linux bullet above);
+# passing the full, multi-platform data/splunk-escu-detections.json
+# unfiltered would inflate the coverage count with non-Linux entries
+# that happen to share a technique ID (naive 194/355 vs. the accurate
+# 99/355). data/redhat-detections.json needs no such filtering -- it's
+# 100% Linux/RHEL-scoped by construction. Re-run after editing either
+# file to keep covered_by_library accurate; the metadata.title/
+# description get overwritten by the generator's generic wording each
+# time, so re-apply the Linux-specific framing afterward (see the git
+# history for the exact text) if you want it back.
 ```
 
-To add a new platform (e.g. `Linux` for the Red Hat catalogue), run the
-script with `--platform Linux --detections data/redhat-detections.json`,
-then add `{ id: "Linux", label: "Linux", file: "data/mitre-attack-linux.json" }`
+To add a new platform (e.g. `macOS`, the largest remaining gap in this
+library's coverage view — see the linux bullet above), run the script
+with `--platform macOS --detections <filtered macOS-scoped detections>`,
+then add `{ id: "macOS", label: "macOS", file: "data/mitre-attack-macos.json" }`
 to the `COVERAGE_PLATFORMS` array near the top of the MITRE coverage
 section in `index.template.html` and rebuild. If the platform's MITRE
 name and this library's preferred label don't match 1:1 (as with Cisco/
