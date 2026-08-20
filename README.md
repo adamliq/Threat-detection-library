@@ -1066,7 +1066,7 @@ combined page picks up the change.
 
 The **ATT&CK Coverage** button in the header opens a per-platform coverage
 browser backed by `data/mitre-attack-<platform>.json` files (currently
-`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, `linux`, and `iaas`), each fetched independently at runtime —
+`esxi`, `windows`, `cisco`, `saas`, `identity-provider`, `containers`, `linux`, `iaas`, and `office-suite`), each fetched independently at runtime —
 they are *not* baked into the page, so any one can be refreshed without a
 full rebuild. Each is built straight from MITRE's official STIX corpus
 ([mitre/cti](https://github.com/mitre/cti)) and contains, for that
@@ -1203,7 +1203,23 @@ platform:
   files — the same component can legitimately contain IaaS-control-plane
   detections (S3/storage, CloudTrail, security-group changes) alongside
   identity-layer detections (sign-in, MFA), since MITRE itself scopes
-  many underlying techniques to multiple platforms simultaneously.
+  many underlying techniques to multiple platforms simultaneously. For
+  `office-suite`, across the 91 `data/splunk-escu-detections.json`
+  entries whose `component` is `"Microsoft 365"`, `"Microsoft 365
+  Copilot"`, or `"Microsoft SharePoint"` — desktop and cloud-hosted
+  office-productivity application behavior (Outlook/Exchange mailbox
+  and mail-flow rules, SharePoint, OAuth application access to
+  mailbox/document content, AI-copilot usage) as distinct from the
+  broader SaaS/Identity Provider scope of the same underlying Microsoft
+  365 tenant — deliberately excluding this catalogue's non-Office
+  components (Windows Endpoint, AWS/Azure/GCP, Okta/PingID, and the
+  rest) even where a shared, broadly-applicable technique ID (e.g.
+  T1078 Valid Accounts) would otherwise inflate the coverage count; the
+  naive, unfiltered whole-ESCU cross-reference would report 48/78
+  covered — the curated, genuinely-Office-Suite-scoped set gives the
+  accurate figure: 26/78. As with iaas/identity-provider, `"Microsoft
+  365"` and `"Microsoft 365 Copilot"` are each shared, in part, with
+  the `saas`/`identity-provider` coverage files, for the same reason.
 - every official MITRE **Detection Analytic** scoped to the platform
   (MITRE's newer Analytics/Detection Strategy/Data Source STIX object
   model — `x-mitre-analytic`, `x-mitre-detection-strategy`,
@@ -1352,6 +1368,24 @@ python3 tools/fetch_mitre_platform.py --platform IaaS \
 # generic wording each time, so re-apply the IaaS-specific framing
 # afterward (see the git history for the exact text) if you want it
 # back.
+
+python3 tools/fetch_mitre_platform.py --platform "Office Suite" \
+  --detections /path/to/a/filtered-office-suite-only-escu-detections.json \
+  --output data/mitre-attack-office-suite.json
+# "Office Suite" is MITRE's own platform name (quote it -- it contains
+# a space); --output picks the vendor-facing filename. The
+# --detections file must first be filtered down to just the ESCU
+# entries that genuinely detect office-productivity-application
+# telemetry (Microsoft 365, Microsoft 365 Copilot, Microsoft
+# SharePoint -- see the office-suite bullet above); passing the full,
+# multi-platform data/splunk-escu-detections.json unfiltered would
+# inflate the coverage count with non-Office entries that happen to
+# share a technique ID (naive 48/78 vs. the accurate 26/78). Re-run
+# after editing that filtered set to keep covered_by_library accurate;
+# the metadata.title/description get overwritten by the generator's
+# generic wording each time, so re-apply the Office-Suite-specific
+# framing afterward (see the git history for the exact text) if you
+# want it back.
 ```
 
 To add a new platform (e.g. `macOS`, the largest remaining gap in this
