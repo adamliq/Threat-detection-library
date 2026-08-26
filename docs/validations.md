@@ -1,6 +1,6 @@
 # Validations
 
-Three catalogues back this library's **Validations** page — a top-level
+Four catalogues back this library's **Validations** page — a top-level
 view, alongside **Detections** and **Heat Coverage**, and this library's
 first entries in a new content type: a **validation catalogue**, not a
 detection catalogue.
@@ -8,8 +8,9 @@ detection catalogue.
 - `data/rhel-privileged-action-validations.json` (204 entries, `RHEL`)
 - `data/fortigate-privileged-admin-validations.json` (146 entries, `FortiGate`)
 - `data/cisco-sdwan-privileged-admin-validations.json` (145 entries, `Cisco SD-WAN`)
+- `data/rhel-ipa-privileged-admin-validations.json` (139 entries, `IdM/IPA/FreeIPA`)
 
-All three share one page, one card grid, one detail-panel design, and
+All four share one page, one card grid, one detail-panel design, and
 one `platform` filter facet to tell them apart — the same "many sources,
 one page" pattern the Detections page already uses for its fourteen
 catalogues.
@@ -32,10 +33,16 @@ action happening. A validation entry is a recipe for causing that action
 to happen once, on purpose, in a controlled environment, so you can
 confirm the watching actually works — a test-execution reference for the
 existing catalogues (the Red Hat, Fortinet, and Cisco catalogues,
-respectively), not a new production capability of its own. See the
-Validations page's own intro text for the same explanation in the UI.
+respectively — the fourth catalogue below also references the Red Hat
+catalogue's IdM/IPA entries specifically), not a new production
+capability of its own. See the Validations page's own intro text for the
+same explanation in the UI.
 
 ## RHEL Privileged Action Validation Catalogue
+
+Covers general RHEL OS-level privileged actions — not to be confused
+with the RHEL IdM/IPA catalogue below, which covers IPA/IdM (FreeIPA)
+directory/identity-management actions specifically.
 
 ### Source and conversion
 
@@ -298,23 +305,110 @@ lab-safe), similar to FortiGate — many SD-WAN administrative actions
 disruptive by nature, but a meaningful share (creating test objects,
 read-only diagnostics) are safe to exercise directly.
 
+## RHEL IdM/IPA Privileged Admin Action Validation Catalogue
+
+### Source and conversion
+
+The source is a fourth uploaded workbook, "RHEL IPA Privileged Admin
+Actions (Enriched)" — the same three-sheet shape again, 139 rows,
+`IPA-PRIV-001` through `IPA-PRIV-139`, across 27 categories (User,
+Group, Host, HBAC, Sudo, RBAC, Kerberos, Certificate, DNS, Trust,
+Replication, Automember, Vault, and more) covering FreeIPA/IdM
+directory-service administration. This is a distinct catalogue from
+`data/rhel-privileged-action-validations.json` above — that one covers
+general RHEL OS-level actions (users, sudo, SSH, SELinux, firewall);
+this one covers IPA/IdM-specific directory and identity-management
+actions, mirroring the same RHEL/IdM-IPA split `data/redhat-detections.json`
+already draws between its `RHEL` and `IdM/IPA/FreeIPA` platform values.
+In place of Cisco SD-WAN's Manager-context columns, this workbook
+carries IPA-specific ones — IPA Area / Context, IPA Command Family,
+Expected LDAP Target, Expected Telemetry Type, Expected Admin/Principal,
+Expected Source IP, Expected Host/Server, Expected Command/Change —
+reflecting that an IPA server's privileged-action evidence centers on
+an LDAP directory target (DN) plus a Kerberos/IPA principal identity,
+correlated across the IPA API/audit log, 389-DS directory server log,
+and Kerberos KDC log.
+
+Converted the same way: programmatically, one entry per row, into
+`data/rhel-ipa-privileged-admin-validations.json` against
+`schema/rhel-ipa-privileged-admin-validation.schema.json`. `platform`
+is `["IdM/IPA/FreeIPA"]` on every entry — the exact same platform string
+`data/redhat-detections.json`'s platform enum already uses for this
+component, so the two catalogues stay consistent about what to call it
+(the same reasoning that picked `"FortiGate"` to match `fortinet_product`
+for the second catalogue).
+
+### MITRE ATT&CK mapping: the T1562 family strikes a fifth time, plus a stale technique name
+
+Same live-resolution discipline as the other three catalogues, and the
+same pre-split "Defense Evasion" tactic-name problem in the workbook's
+own tactic column. `T1562.001` reappears here too (3 rows) — this
+technique family's renumbering has now had to be corrected **five**
+times across this library's history (Aria, RHEL, FortiGate, Cisco
+SD-WAN, now RHEL IdM/IPA).
+
+A second, independent discrepancy turned up: the workbook labels
+`T1484.002` as "Domain Trust Modification", but MITRE's current name for
+that technique is simply "Trust Modification" (the "Domain" qualifier
+was dropped in a later ATT&CK revision). The live-resolved technique
+name is used in the entry; the workbook's stale name is preserved in the
+technique's `note` field rather than silently corrected, the same
+transparency approach used for every other stale-label discrepancy this
+library has caught.
+
+**Result:** 92 of 139 entries (66%) carry a resolved, currently-valid
+MITRE technique; 11 distinct techniques across 8 tactics. Of the 47
+entries with no technique, 19 still land a tactic from the workbook's
+own tactic column; the remaining 28 carry no tactic/technique at all.
+
+### RHEL IdM/IPA by the numbers
+
+| Category (top 10 of 27) | Count |
+|---|---:|
+| User | 18 |
+| Sudo | 14 |
+| HBAC | 11 |
+| Certificate | 10 |
+| Service | 9 |
+| DNS | 9 |
+| Group | 7 |
+| Host | 5 |
+| RBAC | 4 |
+| Kerberos | 4 |
+
+| Detection Priority | Count | | SAFE Test | Count |
+|---|---:|---|---|---:|
+| Critical | 71 | | Yes (lab-safe) | 90 |
+| High | 65 | | No | 49 |
+| Medium | 2 | | | |
+| Low | 1 | | | |
+
+Priority again skews Critical/High (136 of 139), same rationale as the
+other three catalogues. `SAFE Test` skews toward lab-safe (90/139) —
+unlike the network-device catalogues, a large share of IPA directory
+actions (creating a test user, group, host, sudo rule, or HBAC rule) are
+routine, low-blast-radius operations that are easy to clean up
+afterward; only actions touching replication topology, trusts, or
+server-wide configuration carry real disruption risk.
+
 ## What's in each entry
 
-`platform` is an array on every entry (`["RHEL"]`, `["FortiGate"]`, or
-`["Cisco SD-WAN"]` today) and is a real facet in the Validations page's
-filter sidebar, not just a data-model formality — it's what lets one
-page and one card grid serve multiple validation catalogues without
-them being confused for each other. A future validation catalogue for
-another platform slots in the same way: its own schema, its own data
-file, a new entry in the page's `VALIDATIONS` array, and (if its raw
-telemetry fields don't match an existing platform's) a new telemetry
-field group in the detail-panel renderer's `VALIDATION_TELEMETRY_GROUPS`.
+`platform` is an array on every entry (`["RHEL"]`, `["FortiGate"]`,
+`["Cisco SD-WAN"]`, or `["IdM/IPA/FreeIPA"]` today) and is a real facet
+in the Validations page's filter sidebar, not just a data-model
+formality — it's what lets one page and one card grid serve multiple
+validation catalogues without them being confused for each other. A
+future validation catalogue for another platform slots in the same way:
+its own schema, its own data file, a new entry in the page's
+`VALIDATIONS` array, and (if its raw telemetry fields don't match an
+existing platform's) a new telemetry field group in the detail-panel
+renderer's `VALIDATION_TELEMETRY_GROUPS`.
 
-Most field groups are shared verbatim across all three catalogues today
+Most field groups are shared verbatim across all four catalogues today
 — the telemetry group is the one place they diverge, since a Linux
-auditd trail, a FortiGate CLI/log trail, and a Cisco SD-WAN Manager
-audit/device-identity trail are three genuinely different kinds of
-evidence:
+auditd trail, a FortiGate CLI/log trail, a Cisco SD-WAN Manager
+audit/device-identity trail, and an IPA LDAP-target/principal trail are
+four genuinely different kinds of evidence:
 
 | Field group | Fields |
 |---|---|
@@ -325,6 +419,7 @@ evidence:
 | Expected telemetry (RHEL) | `audit_key`, `audit_record_types[]`, `expected_syscall`, `expected_executable`, `expected_path`, `expected_auid`, `expected_uid`, `expected_euid`, `expected_command`, `expected_fields[]` |
 | Expected telemetry (FortiGate) | `fortigate_cli_context`, `expected_config_path`, `expected_log_type_subtype`, `expected_admin_user`, `expected_source_ip`, `expected_interface_ui`, `expected_command_change`, `expected_fields[]` |
 | Expected telemetry (Cisco SD-WAN) | `sdwan_manager_context`, `expected_object_config_path`, `expected_telemetry_type`, `expected_admin_user`, `expected_source_ip`, `expected_device_identity`, `expected_task_change_id`, `expected_command_change`, `expected_fields[]` |
+| Expected telemetry (RHEL IdM/IPA) | `ipa_area_context`, `ipa_command_family`, `expected_ldap_target`, `expected_telemetry_type`, `expected_admin_principal`, `expected_source_ip`, `expected_host_server`, `expected_command_change`, `expected_fields[]` |
 | Splunk mapping | `validation_spl`, `splunk_sourcetype[]`, `cim_data_model`, `cim_action` |
 | Detection & compliance | `detection_priority`, `detection_required`, `alert_required`, `compliance_relevant`, `cis_reference`, `stig_reference`, `ism_reference` |
 | Provenance | `notes`, `author`, `created`, `modified`, `version` |
@@ -351,14 +446,15 @@ panel adds sections this content type needs that a detection entry
 doesn't — Test Step (with a Copy button), Validation & Rollback, an
 Expected Telemetry section whose fields and title depend on which
 platform the entry belongs to (auditd for RHEL, CLI/log context for
-FortiGate, Manager audit/device identity for Cisco SD-WAN), Splunk
-Mapping, and Detection & Compliance.
+FortiGate, Manager audit/device identity for Cisco SD-WAN, LDAP
+target/principal for RHEL IdM/IPA), Splunk Mapping, and Detection &
+Compliance.
 
 ## Attribution and license
 
 These catalogues' structure and MITRE ATT&CK resolution are this
 project's own work; their source content (the privileged-action
-definitions, test steps, and telemetry mappings) comes from the three
+definitions, test steps, and telemetry mappings) comes from the four
 uploaded workbooks. `mitre_attack` fields are resolved against the
 official MITRE ATT&CK STIX corpus ([mitre/cti](https://github.com/mitre/cti),
 Apache-2.0-licensed on `mitre-attack`, CC-BY-4.0 on ATT&CK-name content).

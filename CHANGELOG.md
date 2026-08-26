@@ -16,6 +16,33 @@ The current version lives in [`VERSION`](VERSION) (the single source of
 truth — `tools/build.py` reads it and stamps it into the page header)
 and is echoed near the top of [`README.md`](README.md).
 
+## [1.1.0] - 2026-08-26
+
+### Added
+- Fourth validation catalogue: RHEL IdM/IPA Privileged Admin Action
+  Validation (`data/rhel-ipa-privileged-admin-validations.json`, 139
+  entries, `IPA-PRIV-001..139`), platform `IdM/IPA/FreeIPA`, sharing the
+  Validations page with the RHEL, FortiGate, and Cisco SD-WAN
+  catalogues. Distinct from the existing RHEL Privileged Action
+  catalogue: this one covers IPA/IdM (FreeIPA) directory/identity
+  management actions (users, HBAC/sudo rules, Kerberos, certificates,
+  DNS, trusts, replication topology) rather than general RHEL OS-level
+  actions.
+- A fourth `VALIDATION_TELEMETRY_GROUPS` entry in the Validations
+  detail-panel renderer for this catalogue's IPA-specific telemetry
+  fields (LDAP target, IPA command family, admin/principal identity).
+
+### Notes
+- MITRE ATT&CK mapping resolved live against the current `mitre/cti`
+  STIX corpus, same discipline as the other three catalogues: the
+  pre-split "Defense Evasion" tactic-name issue recurred, and the
+  `T1562.001` revoked-technique redirect (`T1685`) reappeared -- this
+  technique family's renumbering has now been corrected five times
+  across this library's history. Also caught a stale technique name in
+  the workbook (`T1484.002` labeled "Domain Trust Modification"; MITRE's
+  current name is "Trust Modification"), preserved in the entry's note
+  field. 92/139 entries (66%) resolved a currently-valid technique.
+
 ## [1.0.0] - 2026-08-26
 
 Initial versioned baseline. This release starts version tracking for
