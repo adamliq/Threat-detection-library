@@ -160,6 +160,12 @@
     color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
   }
   .brand h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  .version-badge {
+    font-size: 10.5px; font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--text-faint); background: var(--bg-inset); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; margin-left: 6px; vertical-align: middle;
+    letter-spacing: 0;
+  }
 
   /* Library-wide stats line lives below the view tabs, not in the header,
      so it never wraps into the space between the title and the search bar
@@ -541,7 +547,7 @@
     <div class="brand">
       <span class="brand-mark">TD</span>
       <div>
-        <h1>Threat Detection Library</h1>
+        <h1>Threat Detection Library <span class="version-badge" id="version-badge" title="Library version — see CHANGELOG.md">v__LIBRARY_VERSION__</span></h1>
       </div>
     </div>
     <div class="search-wrap">
@@ -635,8 +641,9 @@
 
 <p class="validations-intro" id="validations-intro" hidden>A <strong>validation catalogue</strong> is not a detection catalogue: each
   entry below is a test-execution reference for confirming an existing detection actually fires,
-  not a production rule of its own — the exact command to generate one privileged RHEL action, whether
-  it's safe to run in a lab (<span class="tag">SAFE Test</span>), a rollback step, expected auditd/Splunk
+  not a production rule of its own — the exact command to generate one privileged action (RHEL,
+  FortiGate, or Cisco SD-WAN — see the <span class="tag">Platform</span> filter), whether
+  it's safe to run in a lab (<span class="tag">SAFE Test</span>), a rollback step, expected platform
   telemetry, and a one-shot presence-check search. See
   <a href="https://github.com/adamliq/Threat-detection-library/blob/main/docs/validations.md" target="_blank" rel="noopener">docs/validations.md</a>
   for the full rationale.</p>
@@ -654,7 +661,7 @@
     <div class="results-bar">
       <div class="search-wrap">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="validations-search-input" placeholder="Search validations, actions, audit keys, commands&hellip;" autocomplete="off">
+        <input type="text" id="validations-search-input" placeholder="Search validations, actions, telemetry, commands&hellip;" autocomplete="off">
       </div>
       <button class="icon-btn filter-toggle-btn" id="validations-filter-toggle-btn" title="Filters" aria-label="Toggle filters" aria-expanded="false">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
@@ -698,6 +705,8 @@
 <script type="application/json" id="cisco-detections-data">__CISCO_DETECTIONS_JSON__</script>
 <script type="application/json" id="wend-detections-data">__WEND_DETECTIONS_JSON__</script>
 <script type="application/json" id="rhel-priv-validations-data">__RHEL_PRIV_VALIDATIONS_JSON__</script>
+<script type="application/json" id="fgt-priv-validations-data">__FGT_PRIV_VALIDATIONS_JSON__</script>
+<script type="application/json" id="csdwan-priv-validations-data">__CSDWAN_PRIV_VALIDATIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -719,8 +728,14 @@
   // Validation entries are a distinct content type (test-execution references,
   // not production detection rules -- see docs/validations.md) and deliberately
   // stay out of the DATA array/Detections search-filter-card pipeline below;
-  // they get their own parallel pipeline further down instead.
-  var VALIDATIONS = JSON.parse(document.getElementById("rhel-priv-validations-data").textContent);
+  // they get their own parallel pipeline further down instead. Multiple
+  // validation catalogues (RHEL, FortiGate, ...) share one Validations page,
+  // one VALIDATIONS array, and one `platform` facet to tell them apart --
+  // the same "many sources, one page" pattern the Detections page uses for
+  // its fourteen catalogues.
+  var VALIDATIONS = JSON.parse(document.getElementById("rhel-priv-validations-data").textContent)
+    .concat(JSON.parse(document.getElementById("fgt-priv-validations-data").textContent))
+    .concat(JSON.parse(document.getElementById("csdwan-priv-validations-data").textContent));
 
   // Normalize all fourteen catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
@@ -1739,8 +1754,8 @@
   // A parallel, self-contained pipeline mirroring the Detections page's
   // design (search, collapsible filter sidebar, card grid, shared detail
   // overlay) but for a distinct content type -- see docs/validations.md.
-  var validationState = { query: "", category: null, eventType: null, priority: null, tactic: null, safeTest: null, activeId: null };
-  var validationExpandedGroups = { category: false, eventType: false, priority: false, tactic: false, safeTest: false };
+  var validationState = { query: "", platform: null, category: null, eventType: null, priority: null, tactic: null, safeTest: null, activeId: null };
+  var validationExpandedGroups = { platform: false, category: false, eventType: false, priority: false, tactic: false, safeTest: false };
   var VALIDATION_PRIORITY_ORDER = ["Critical", "High", "Medium", "Low"];
 
   function findValidationById(id) { return VALIDATIONS.filter(function (v) { return v.id === id; })[0]; }
@@ -1763,6 +1778,13 @@
       v.id, v.title, v.description, v.category, v.category_sub, v.event_type, v.typical_mechanism,
       v.action, v.object_type, v.test_step, v.audit_key, v.expected_executable, v.expected_path,
       v.validation_spl, v.notes,
+      // Platform-specific fields (each absent on the other catalogues' entries)
+      // -- included here so the same search box reaches every catalogue.
+      v.fortigate_cli_context, v.expected_config_path, v.expected_log_type_subtype,
+      v.expected_admin_user, v.expected_source_ip, v.expected_interface_ui, v.expected_command_change,
+      v.sdwan_manager_context, v.expected_object_config_path, v.expected_telemetry_type,
+      v.expected_device_identity, v.expected_task_change_id,
+      (v.platform || []).join(" "),
       (v.audit_record_types || []).join(" "),
       (v.expected_fields || []).join(" "),
       (v.splunk_sourcetype || []).join(" "),
@@ -1771,6 +1793,7 @@
     return haystack.indexOf(q) !== -1;
   }
   function matchesValidationFilters(v) {
+    if (validationState.platform && (v.platform || []).indexOf(validationState.platform) === -1) return false;
     if (validationState.category && v.category !== validationState.category) return false;
     if (validationState.eventType && v.event_type !== validationState.eventType) return false;
     if (validationState.priority && v.detection_priority !== validationState.priority) return false;
@@ -1802,6 +1825,10 @@
       return html;
     }
 
+    var platformCounts = {};
+    VALIDATIONS.forEach(function (v) { (v.platform || []).forEach(function (p) { platformCounts[p] = (platformCounts[p] || 0) + 1; }); });
+    var platformOpts = Object.keys(platformCounts).sort().map(function (p) { return { key: p, label: p, count: platformCounts[p] }; });
+
     var categoryCounts = {};
     VALIDATIONS.forEach(function (v) { if (v.category) categoryCounts[v.category] = (categoryCounts[v.category] || 0) + 1; });
     var categoryOpts = allValidationValues(function (v) { return v.category; }).map(function (c) { return { key: c, label: c, count: categoryCounts[c] || 0 }; });
@@ -1826,6 +1853,7 @@
     ].filter(function (o) { return o.count; });
 
     sidebar.innerHTML =
+      section("Platform", platformOpts, validationState.platform, "platform") +
       section("Category", categoryOpts, validationState.category, "category") +
       section("Event Type", eventTypeOpts, validationState.eventType, "eventType") +
       section("Detection Priority", priorityOpts, validationState.priority, "priority") +
@@ -1863,6 +1891,45 @@
   }
 
   var PRIORITY_BADGE_CLASS = { "Critical": "critical", "High": "high", "Medium": "medium", "Low": "low" };
+
+  // Every validation catalogue shares the same identity/action/test-execution/
+  // Splunk-mapping/detection-compliance fields (see docs/validations.md), but
+  // each platform's *raw telemetry* fields are necessarily platform-specific
+  // (RHEL: auditd syscall/AUID/UID/EUID; FortiGate: CLI context/config path/
+  // log type). Rather than hard-code one platform's field list, pick whichever
+  // group's anchor field is present on the entry -- a future validation
+  // catalogue for another platform just adds a new group here.
+  var VALIDATION_TELEMETRY_GROUPS = [
+    {
+      anchor: "audit_key", title: "Expected auditd Telemetry",
+      fields: [
+        ["audit_key", "Audit Key", true], ["audit_record_types", "Audit Record Types", "list"],
+        ["expected_syscall", "Expected Syscall"], ["expected_executable", "Expected Executable", true],
+        ["expected_path", "Expected Path", true], ["expected_auid", "Expected AUID"],
+        ["expected_uid", "Expected UID"], ["expected_euid", "Expected EUID"],
+        ["expected_command", "Expected Command", true], ["expected_fields", "Expected Fields", "list"]
+      ]
+    },
+    {
+      anchor: "fortigate_cli_context", title: "Expected FortiGate Telemetry",
+      fields: [
+        ["fortigate_cli_context", "CLI Context", true], ["expected_config_path", "Expected Config Path", true],
+        ["expected_log_type_subtype", "Expected Log Type/Subtype"], ["expected_admin_user", "Expected Admin/User"],
+        ["expected_source_ip", "Expected Source IP"], ["expected_interface_ui", "Expected Interface/UI"],
+        ["expected_command_change", "Expected Command/Change", true], ["expected_fields", "Expected Fields", "list"]
+      ]
+    },
+    {
+      anchor: "sdwan_manager_context", title: "Expected Cisco SD-WAN Telemetry",
+      fields: [
+        ["sdwan_manager_context", "Manager Area / Context", true], ["expected_object_config_path", "Expected Object/Config Path", true],
+        ["expected_telemetry_type", "Expected Telemetry Type"], ["expected_admin_user", "Expected Admin/User"],
+        ["expected_source_ip", "Expected Source IP"], ["expected_device_identity", "Expected Device Identity"],
+        ["expected_task_change_id", "Expected Task/Change ID"], ["expected_command_change", "Expected Command/Change", true],
+        ["expected_fields", "Expected Fields", "list"]
+      ]
+    }
+  ];
   function validationCardHtml(v) {
     var techniques = (v.mitre_attack.techniques || []).map(function (t) { return t.id; });
     var tactics = (v.mitre_attack.tactics || []).map(function (t) { return t.name; });
@@ -1875,6 +1942,7 @@
       '</div>' +
       '<div class="card-desc">' + esc(v.description || "") + '</div>' +
       '<div class="tag-row">' +
+      (v.platform || []).map(function (p) { return '<span class="tag">' + esc(p) + '</span>'; }).join("") +
       '<span class="tag">' + esc(v.category) + '</span>' +
       (v.safe_test ? '<span class="tag">SAFE Test</span>' : '') +
       techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
@@ -1887,6 +1955,7 @@
   function renderValidationChips() {
     var wrap = document.getElementById("validations-active-filters");
     var chips = [];
+    if (validationState.platform) chips.push({ k: "platform", label: "Platform: " + validationState.platform });
     if (validationState.category) chips.push({ k: "category", label: "Category: " + validationState.category });
     if (validationState.eventType) chips.push({ k: "eventType", label: "Event type: " + validationState.eventType });
     if (validationState.priority) chips.push({ k: "priority", label: "Priority: " + validationState.priority });
@@ -1919,7 +1988,7 @@
   }
 
   function updateValidationFilterCountBadge() {
-    var count = ["query", "category", "eventType", "priority", "tactic"].filter(function (k) { return validationState[k]; }).length +
+    var count = ["query", "platform", "category", "eventType", "priority", "tactic"].filter(function (k) { return validationState[k]; }).length +
       (validationState.safeTest !== null ? 1 : 0);
     var badge = document.getElementById("validations-filter-count-badge");
     badge.textContent = count;
@@ -1951,7 +2020,7 @@
       return '<tr><td>' + esc(label) + '</td><td>' + arr.map(function (x) { return '<code>' + esc(x) + '</code>'; }).join(", ") + '</td></tr>';
     }
 
-    var actionRows = kv("Category", v.category + (v.category_sub ? " / " + v.category_sub : "")) +
+    var actionRows = kvList("Platform", v.platform) + kv("Category", v.category + (v.category_sub ? " / " + v.category_sub : "")) +
       kv("Event Type", v.event_type) + kv("Action", v.action) + kv("Object Type", v.object_type) +
       kv("Privilege Level", v.privilege_level) + kv("Privilege Transition", v.privilege_transition) +
       kv("Typical Mechanism", v.typical_mechanism) + kv("Expected Result", v.expected_result) +
@@ -1963,11 +2032,11 @@
       kv("Evidence Expected", v.evidence_expected) + kv("Telemetry Coverage", v.telemetry_coverage) +
       kv("Test Result", v.test_result);
 
-    var auditRows = kv("Audit Key", v.audit_key, true) + kvList("Audit Record Types", v.audit_record_types) +
-      kv("Expected Syscall", v.expected_syscall) + kv("Expected Executable", v.expected_executable, true) +
-      kv("Expected Path", v.expected_path, true) + kv("Expected AUID", v.expected_auid) +
-      kv("Expected UID", v.expected_uid) + kv("Expected EUID", v.expected_euid) +
-      kv("Expected Command", v.expected_command, true) + kvList("Expected Fields", v.expected_fields);
+    var telemetryGroup = VALIDATION_TELEMETRY_GROUPS.filter(function (g) { return v[g.anchor]; })[0];
+    var telemetryTitle = telemetryGroup ? telemetryGroup.title : "Expected Telemetry";
+    var auditRows = telemetryGroup ? telemetryGroup.fields.map(function (f) {
+      return f[2] === "list" ? kvList(f[1], v[f[0]]) : kv(f[1], v[f[0]], f[2]);
+    }).join("") : "";
 
     var splunkRows = kvList("Sourcetype", v.splunk_sourcetype) + kv("CIM Data Model", v.cim_data_model) + kv("CIM Action", v.cim_action);
 
@@ -2008,7 +2077,7 @@
         (v.validation_spl ? '<div class="detail-section"><h4>Validation Search (Splunk SPL, presence check only)</h4>' +
           '<div class="code-block"><button class="copy-btn" data-copy="validation_spl">Copy</button>' + esc(v.validation_spl) + '</div></div>' : '') +
 
-        (auditRows ? '<div class="detail-section"><h4>Expected auditd Telemetry</h4><table class="kv-table">' + auditRows + '</table></div>' : '') +
+        (auditRows ? '<div class="detail-section"><h4>' + esc(telemetryTitle) + '</h4><table class="kv-table">' + auditRows + '</table></div>' : '') +
 
         (splunkRows ? '<div class="detail-section"><h4>Splunk Mapping</h4><table class="kv-table">' + splunkRows + '</table></div>' : '') +
 

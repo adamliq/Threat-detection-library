@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build index.html from index.template.html + data/detections.json +
+Build index.html from VERSION + index.template.html + data/detections.json +
 data/aria-detections.json + data/redhat-detections.json +
 data/fortinet-detections.json + data/idrac-detections.json +
 data/ilo-detections.json + data/dhcp-detections.json +
@@ -8,7 +8,9 @@ data/rdp-detections.json + data/vcf-detections.json +
 data/splunk-detections.json + data/ad-detections.json +
 data/splunk-escu-detections.json + data/cisco-detections.json +
 data/windows-endpoint-detections.json +
-data/rhel-privileged-action-validations.json.
+data/rhel-privileged-action-validations.json +
+data/fortigate-privileged-admin-validations.json +
+data/cisco-sdwan-privileged-admin-validations.json.
 
 index.html is the combined library: it embeds the ESXi/Splunk SPL, VMware
 Aria Operations for Logs, Red Hat (RHEL/IdM/IPA/FreeIPA/AAP/Satellite),
@@ -17,20 +19,28 @@ Windows RDP, VMware Cloud Foundation, Splunk Platform (Splunk Cloud &
 Splunk Enterprise self-protection), Active Directory Domain Services,
 Splunk Security Content (ESCU), Cisco Network Device (MITRE-gap-fill),
 and Windows Endpoint (MITRE-gap-fill) Splunk SPL catalogues (all fourteen
-share the Detections page), plus the RHEL Privileged Action Validation
-catalogue -- a distinct content type on its own Validations page, not a
-detection catalogue (see docs/validations.md). Run this after editing any
-data file (adding a new batch, fixing a field, etc.) to regenerate the
-static, self-contained index.html that GitHub Pages / file:// serves.
+share the Detections page), plus the RHEL Privileged Action, FortiGate
+Privileged Admin Action, and Cisco SD-WAN Privileged Admin Action
+Validation catalogues -- a distinct content type on their own shared
+Validations page, not detection catalogues (see docs/validations.md).
+Run this after editing any data file (adding a new batch, fixing a
+field, etc.) to regenerate the static, self-contained index.html that
+GitHub Pages / file:// serves. Also stamps the version from VERSION
+(single source of truth, semver -- see README.md's Versioning section
+and CHANGELOG.md) into the page header; bump VERSION and add a
+CHANGELOG.md entry before rebuilding when a batch warrants a version
+bump.
 
 Usage:
     python3 tools/build.py
 """
 import json
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+VERSION_FILE = ROOT / "VERSION"
 DATA_FILE = ROOT / "data" / "detections.json"
 ARIA_DATA_FILE = ROOT / "data" / "aria-detections.json"
 REDHAT_DATA_FILE = ROOT / "data" / "redhat-detections.json"
@@ -46,6 +56,8 @@ ESCU_DATA_FILE = ROOT / "data" / "splunk-escu-detections.json"
 CISCO_DATA_FILE = ROOT / "data" / "cisco-detections.json"
 WEND_DATA_FILE = ROOT / "data" / "windows-endpoint-detections.json"
 VALIDATIONS_DATA_FILE = ROOT / "data" / "rhel-privileged-action-validations.json"
+FGT_VALIDATIONS_DATA_FILE = ROOT / "data" / "fortigate-privileged-admin-validations.json"
+CSDWAN_VALIDATIONS_DATA_FILE = ROOT / "data" / "cisco-sdwan-privileged-admin-validations.json"
 TEMPLATE_FILE = ROOT / "index.template.html"
 OUTPUT_FILE = ROOT / "index.html"
 MARKER = "__DETECTIONS_JSON__"
@@ -63,6 +75,9 @@ ESCU_MARKER = "__ESCU_DETECTIONS_JSON__"
 CISCO_MARKER = "__CISCO_DETECTIONS_JSON__"
 WEND_MARKER = "__WEND_DETECTIONS_JSON__"
 VALIDATIONS_MARKER = "__RHEL_PRIV_VALIDATIONS_JSON__"
+FGT_VALIDATIONS_MARKER = "__FGT_PRIV_VALIDATIONS_JSON__"
+CSDWAN_VALIDATIONS_MARKER = "__CSDWAN_PRIV_VALIDATIONS_JSON__"
+VERSION_MARKER = "__LIBRARY_VERSION__"
 
 
 def check_ids(data, source_name):
@@ -80,7 +95,16 @@ def to_payload(data):
     return payload.replace("</script", "<\\/script")
 
 
+def read_version():
+    version = VERSION_FILE.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        sys.exit(f"VERSION file must contain a MAJOR.MINOR.PATCH string, got: {version!r}")
+    return version
+
+
 def main():
+    version = read_version()
+
     data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
     check_ids(data, DATA_FILE.name)
 
@@ -126,11 +150,18 @@ def main():
     validations_data = json.loads(VALIDATIONS_DATA_FILE.read_text(encoding="utf-8"))
     check_ids(validations_data, VALIDATIONS_DATA_FILE.name)
 
+    fgt_validations_data = json.loads(FGT_VALIDATIONS_DATA_FILE.read_text(encoding="utf-8"))
+    check_ids(fgt_validations_data, FGT_VALIDATIONS_DATA_FILE.name)
+
+    csdwan_validations_data = json.loads(CSDWAN_VALIDATIONS_DATA_FILE.read_text(encoding="utf-8"))
+    check_ids(csdwan_validations_data, CSDWAN_VALIDATIONS_DATA_FILE.name)
+
     all_ids = [
         d["id"]
         for d in data + aria_data + redhat_data + fortinet_data + idrac_data
         + ilo_data + dhcp_data + rdp_data + vcf_data + splunk_data + ad_data
-        + escu_data + cisco_data + wend_data + validations_data
+        + escu_data + cisco_data + wend_data + validations_data + fgt_validations_data
+        + csdwan_validations_data
     ]
     if len(all_ids) != len(set(all_ids)):
         seen = set()
@@ -142,6 +173,7 @@ def main():
         MARKER, ARIA_MARKER, REDHAT_MARKER, FORTINET_MARKER, IDRAC_MARKER,
         ILO_MARKER, DHCP_MARKER, RDP_MARKER, VCF_MARKER, SPLUNK_MARKER,
         AD_MARKER, ESCU_MARKER, CISCO_MARKER, WEND_MARKER, VALIDATIONS_MARKER,
+        FGT_VALIDATIONS_MARKER, CSDWAN_VALIDATIONS_MARKER, VERSION_MARKER,
     ):
         if marker not in template:
             sys.exit(f"Marker {marker} not found in {TEMPLATE_FILE.name}")
@@ -162,17 +194,23 @@ def main():
         .replace(CISCO_MARKER, to_payload(cisco_data))
         .replace(WEND_MARKER, to_payload(wend_data))
         .replace(VALIDATIONS_MARKER, to_payload(validations_data))
+        .replace(FGT_VALIDATIONS_MARKER, to_payload(fgt_validations_data))
+        .replace(CSDWAN_VALIDATIONS_MARKER, to_payload(csdwan_validations_data))
+        .replace(VERSION_MARKER, version)
     )
     OUTPUT_FILE.write_text(output, encoding="utf-8")
     print(
-        f"Built {OUTPUT_FILE.relative_to(ROOT)} from {len(data)} ESXi/Splunk SPL + "
+        f"Built {OUTPUT_FILE.relative_to(ROOT)} (v{version}) from {len(data)} ESXi/Splunk SPL + "
         f"{len(aria_data)} Aria + {len(redhat_data)} Red Hat + {len(fortinet_data)} Fortinet + "
         f"{len(idrac_data)} Dell iDRAC + {len(ilo_data)} HPE iLO + {len(dhcp_data)} Windows DHCP + "
         f"{len(rdp_data)} Windows RDP + {len(vcf_data)} VMware Cloud Foundation + "
         f"{len(splunk_data)} Splunk Platform + {len(ad_data)} Active Directory + "
         f"{len(escu_data)} Splunk ESCU + {len(cisco_data)} Cisco Network Device + "
         f"{len(wend_data)} Windows Endpoint detection(s), plus "
-        f"{len(validations_data)} RHEL Privileged Action Validation entries."
+        f"{len(validations_data)} RHEL Privileged Action, "
+        f"{len(fgt_validations_data)} FortiGate Privileged Admin Action, and "
+        f"{len(csdwan_validations_data)} Cisco SD-WAN Privileged Admin Action "
+        f"Validation entries."
     )
 
 
