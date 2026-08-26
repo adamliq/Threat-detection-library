@@ -87,9 +87,17 @@ mapping.
 
 ## What's in each entry
 
+`platform` is an array (matching the same field's convention on
+`data/redhat-detections.json`) and is `["RHEL"]` on every entry today —
+this catalogue's scope is entirely RHEL. It's a real facet in the
+Validations page's filter sidebar, not just a data-model formality: a
+future validation catalogue for another platform (e.g. Windows
+privileged actions) would widen the schema's `platform` enum and slot
+into the same page and filter set rather than needing its own.
+
 | Field group | Fields |
 |---|---|
-| Identity | `id`, `category`, `category_sub`, `event_type`, `title`, `description` |
+| Identity | `id`, `platform`, `category`, `category_sub`, `event_type`, `title`, `description` |
 | The action itself | `typical_mechanism`, `action`, `object_type`, `privilege_level`, `privilege_transition`, `expected_result`, `status` |
 | MITRE ATT&CK | `mitre_attack.tactics[]`, `mitre_attack.techniques[]` (resolved live — see above) |
 | Test execution | `safe_test`, `test_step`, `test_environment`, `rollback_step`, `evidence_expected`, `telemetry_coverage`, `test_result` |

@@ -1739,8 +1739,8 @@
   // A parallel, self-contained pipeline mirroring the Detections page's
   // design (search, collapsible filter sidebar, card grid, shared detail
   // overlay) but for a distinct content type -- see docs/validations.md.
-  var validationState = { query: "", category: null, eventType: null, priority: null, tactic: null, safeTest: null, activeId: null };
-  var validationExpandedGroups = { category: false, eventType: false, priority: false, tactic: false, safeTest: false };
+  var validationState = { query: "", platform: null, category: null, eventType: null, priority: null, tactic: null, safeTest: null, activeId: null };
+  var validationExpandedGroups = { platform: false, category: false, eventType: false, priority: false, tactic: false, safeTest: false };
   var VALIDATION_PRIORITY_ORDER = ["Critical", "High", "Medium", "Low"];
 
   function findValidationById(id) { return VALIDATIONS.filter(function (v) { return v.id === id; })[0]; }
@@ -1763,6 +1763,7 @@
       v.id, v.title, v.description, v.category, v.category_sub, v.event_type, v.typical_mechanism,
       v.action, v.object_type, v.test_step, v.audit_key, v.expected_executable, v.expected_path,
       v.validation_spl, v.notes,
+      (v.platform || []).join(" "),
       (v.audit_record_types || []).join(" "),
       (v.expected_fields || []).join(" "),
       (v.splunk_sourcetype || []).join(" "),
@@ -1771,6 +1772,7 @@
     return haystack.indexOf(q) !== -1;
   }
   function matchesValidationFilters(v) {
+    if (validationState.platform && (v.platform || []).indexOf(validationState.platform) === -1) return false;
     if (validationState.category && v.category !== validationState.category) return false;
     if (validationState.eventType && v.event_type !== validationState.eventType) return false;
     if (validationState.priority && v.detection_priority !== validationState.priority) return false;
@@ -1802,6 +1804,10 @@
       return html;
     }
 
+    var platformCounts = {};
+    VALIDATIONS.forEach(function (v) { (v.platform || []).forEach(function (p) { platformCounts[p] = (platformCounts[p] || 0) + 1; }); });
+    var platformOpts = Object.keys(platformCounts).sort().map(function (p) { return { key: p, label: p, count: platformCounts[p] }; });
+
     var categoryCounts = {};
     VALIDATIONS.forEach(function (v) { if (v.category) categoryCounts[v.category] = (categoryCounts[v.category] || 0) + 1; });
     var categoryOpts = allValidationValues(function (v) { return v.category; }).map(function (c) { return { key: c, label: c, count: categoryCounts[c] || 0 }; });
@@ -1826,6 +1832,7 @@
     ].filter(function (o) { return o.count; });
 
     sidebar.innerHTML =
+      section("Platform", platformOpts, validationState.platform, "platform") +
       section("Category", categoryOpts, validationState.category, "category") +
       section("Event Type", eventTypeOpts, validationState.eventType, "eventType") +
       section("Detection Priority", priorityOpts, validationState.priority, "priority") +
@@ -1875,6 +1882,7 @@
       '</div>' +
       '<div class="card-desc">' + esc(v.description || "") + '</div>' +
       '<div class="tag-row">' +
+      (v.platform || []).map(function (p) { return '<span class="tag">' + esc(p) + '</span>'; }).join("") +
       '<span class="tag">' + esc(v.category) + '</span>' +
       (v.safe_test ? '<span class="tag">SAFE Test</span>' : '') +
       techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
@@ -1887,6 +1895,7 @@
   function renderValidationChips() {
     var wrap = document.getElementById("validations-active-filters");
     var chips = [];
+    if (validationState.platform) chips.push({ k: "platform", label: "Platform: " + validationState.platform });
     if (validationState.category) chips.push({ k: "category", label: "Category: " + validationState.category });
     if (validationState.eventType) chips.push({ k: "eventType", label: "Event type: " + validationState.eventType });
     if (validationState.priority) chips.push({ k: "priority", label: "Priority: " + validationState.priority });
@@ -1919,7 +1928,7 @@
   }
 
   function updateValidationFilterCountBadge() {
-    var count = ["query", "category", "eventType", "priority", "tactic"].filter(function (k) { return validationState[k]; }).length +
+    var count = ["query", "platform", "category", "eventType", "priority", "tactic"].filter(function (k) { return validationState[k]; }).length +
       (validationState.safeTest !== null ? 1 : 0);
     var badge = document.getElementById("validations-filter-count-badge");
     badge.textContent = count;
@@ -1951,7 +1960,7 @@
       return '<tr><td>' + esc(label) + '</td><td>' + arr.map(function (x) { return '<code>' + esc(x) + '</code>'; }).join(", ") + '</td></tr>';
     }
 
-    var actionRows = kv("Category", v.category + (v.category_sub ? " / " + v.category_sub : "")) +
+    var actionRows = kvList("Platform", v.platform) + kv("Category", v.category + (v.category_sub ? " / " + v.category_sub : "")) +
       kv("Event Type", v.event_type) + kv("Action", v.action) + kv("Object Type", v.object_type) +
       kv("Privilege Level", v.privilege_level) + kv("Privilege Transition", v.privilege_transition) +
       kv("Typical Mechanism", v.typical_mechanism) + kv("Expected Result", v.expected_result) +

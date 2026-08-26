@@ -5,12 +5,13 @@
   "description": "Schema for a single entry in data/rhel-privileged-action-validations.json. Unlike this library's fourteen detection catalogues, a validation entry is not a production detection rule -- its 'search' field is a one-shot presence check ('did the expected event show up'), and its distinguishing fields (safe_test, test_step, rollback_step, test_result) describe executing an action once in a lab and confirming the telemetry/detection fired, not detecting the action in production traffic. See docs/validations.md for the full rationale and how this differs from a detection catalogue entry.",
   "type": "object",
   "required": [
-    "id", "category", "category_sub", "event_type", "title", "description",
+    "id", "platform", "category", "category_sub", "event_type", "title", "description",
     "mitre_attack", "safe_test", "test_step", "detection_priority",
     "author", "created", "modified", "version"
   ],
   "properties": {
     "id": { "type": "string", "pattern": "^RHEL-PRIV-[0-9]{3}$", "description": "Stable catalogue identifier, sourced from the original workbook's Event ID column." },
+    "platform": { "type": "array", "items": { "type": "string", "enum": ["RHEL"] }, "minItems": 1, "description": "Platform(s) this validation applies to, matching the platform enum convention used by data/redhat-detections.json. Every entry in this catalogue is RHEL-scoped today; the enum is deliberately narrow and should be widened only when a validation catalogue for another platform is added." },
     "category": { "type": "string", "description": "Original test grouping, e.g. User, Sudo, Service." },
     "category_sub": { "type": "string", "description": "Specific test/action within the category." },
     "event_type": { "type": "string", "description": "High-level privileged activity taxonomy, e.g. Account management, SELinux, Service management." },
