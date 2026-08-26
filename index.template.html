@@ -160,6 +160,12 @@
     color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
   }
   .brand h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  .version-badge {
+    font-size: 10.5px; font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--text-faint); background: var(--bg-inset); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; margin-left: 6px; vertical-align: middle;
+    letter-spacing: 0;
+  }
 
   /* Library-wide stats line lives below the view tabs, not in the header,
      so it never wraps into the space between the title and the search bar
@@ -541,7 +547,7 @@
     <div class="brand">
       <span class="brand-mark">TD</span>
       <div>
-        <h1>Threat Detection Library</h1>
+        <h1>Threat Detection Library <span class="version-badge" id="version-badge" title="Library version — see CHANGELOG.md">v__LIBRARY_VERSION__</span></h1>
       </div>
     </div>
     <div class="search-wrap">

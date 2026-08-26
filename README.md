@@ -1,5 +1,7 @@
 # Threat Detection Library
 
+![version](https://img.shields.io/badge/version-1.0.0-informational) [Changelog](CHANGELOG.md)
+
 A searchable, self-contained library of platform-specific threat detections —
 technique description, data sources, detection logic, MITRE ATT&CK mapping,
 known false positives, investigation steps, and references — in the same
@@ -1045,6 +1047,8 @@ Detections page uses for its fourteen catalogues.
 ## Repository layout
 
 ```
+VERSION                        Single source of truth for the project's current semver version (see Versioning below); tools/build.py stamps it into index.html.
+CHANGELOG.md                   What changed at each version, in Keep a Changelog style.
 data/detections.json           Canonical source of truth for the ESXi/Splunk catalogue.
 data/aria-detections.json      Canonical data for the Aria Operations for Logs catalogue (generated - see below).
 data/redhat-detections.json    Canonical source of truth for the Red Hat (RHEL/IdM/AAP/Satellite) catalogue.
@@ -1680,6 +1684,23 @@ marker/constant/`check_ids` call in `tools/build.py`, and a new entry in
 telemetry field group in `validationDetailHtml`'s
 `VALIDATION_TELEMETRY_GROUPS` if its raw telemetry fields don't match an
 existing platform's.
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/)
+(`MAJOR.MINOR.PATCH`), tracked starting at `1.0.0`. [`VERSION`](VERSION)
+at the repo root is the single source of truth — `tools/build.py` reads
+it and stamps it into `index.html`'s header (the small `v1.0.0` badge
+next to the page title), so the version shown in the running page is
+always the one in that file, never hand-edited in the template. See
+[`CHANGELOG.md`](CHANGELOG.md) for what changed at each version and the
+increment rule (MINOR for new catalogues/platforms/features, PATCH for
+fixes and documentation, MAJOR reserved for breaking changes).
+
+Bumping the version is part of finishing a batch, not a separate step:
+update `VERSION`, add a dated entry to `CHANGELOG.md`, then rebuild
+(`python3 tools/build.py`) so `index.html` picks up the new number
+before committing.
 
 ## Disclaimer
 

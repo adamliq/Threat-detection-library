@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build index.html from index.template.html + data/detections.json +
+Build index.html from VERSION + index.template.html + data/detections.json +
 data/aria-detections.json + data/redhat-detections.json +
 data/fortinet-detections.json + data/idrac-detections.json +
 data/ilo-detections.json + data/dhcp-detections.json +
@@ -25,16 +25,22 @@ Validation catalogues -- a distinct content type on their own shared
 Validations page, not detection catalogues (see docs/validations.md).
 Run this after editing any data file (adding a new batch, fixing a
 field, etc.) to regenerate the static, self-contained index.html that
-GitHub Pages / file:// serves.
+GitHub Pages / file:// serves. Also stamps the version from VERSION
+(single source of truth, semver -- see README.md's Versioning section
+and CHANGELOG.md) into the page header; bump VERSION and add a
+CHANGELOG.md entry before rebuilding when a batch warrants a version
+bump.
 
 Usage:
     python3 tools/build.py
 """
 import json
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+VERSION_FILE = ROOT / "VERSION"
 DATA_FILE = ROOT / "data" / "detections.json"
 ARIA_DATA_FILE = ROOT / "data" / "aria-detections.json"
 REDHAT_DATA_FILE = ROOT / "data" / "redhat-detections.json"
@@ -71,6 +77,7 @@ WEND_MARKER = "__WEND_DETECTIONS_JSON__"
 VALIDATIONS_MARKER = "__RHEL_PRIV_VALIDATIONS_JSON__"
 FGT_VALIDATIONS_MARKER = "__FGT_PRIV_VALIDATIONS_JSON__"
 CSDWAN_VALIDATIONS_MARKER = "__CSDWAN_PRIV_VALIDATIONS_JSON__"
+VERSION_MARKER = "__LIBRARY_VERSION__"
 
 
 def check_ids(data, source_name):
@@ -88,7 +95,16 @@ def to_payload(data):
     return payload.replace("</script", "<\\/script")
 
 
+def read_version():
+    version = VERSION_FILE.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        sys.exit(f"VERSION file must contain a MAJOR.MINOR.PATCH string, got: {version!r}")
+    return version
+
+
 def main():
+    version = read_version()
+
     data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
     check_ids(data, DATA_FILE.name)
 
@@ -157,7 +173,7 @@ def main():
         MARKER, ARIA_MARKER, REDHAT_MARKER, FORTINET_MARKER, IDRAC_MARKER,
         ILO_MARKER, DHCP_MARKER, RDP_MARKER, VCF_MARKER, SPLUNK_MARKER,
         AD_MARKER, ESCU_MARKER, CISCO_MARKER, WEND_MARKER, VALIDATIONS_MARKER,
-        FGT_VALIDATIONS_MARKER, CSDWAN_VALIDATIONS_MARKER,
+        FGT_VALIDATIONS_MARKER, CSDWAN_VALIDATIONS_MARKER, VERSION_MARKER,
     ):
         if marker not in template:
             sys.exit(f"Marker {marker} not found in {TEMPLATE_FILE.name}")
@@ -180,10 +196,11 @@ def main():
         .replace(VALIDATIONS_MARKER, to_payload(validations_data))
         .replace(FGT_VALIDATIONS_MARKER, to_payload(fgt_validations_data))
         .replace(CSDWAN_VALIDATIONS_MARKER, to_payload(csdwan_validations_data))
+        .replace(VERSION_MARKER, version)
     )
     OUTPUT_FILE.write_text(output, encoding="utf-8")
     print(
-        f"Built {OUTPUT_FILE.relative_to(ROOT)} from {len(data)} ESXi/Splunk SPL + "
+        f"Built {OUTPUT_FILE.relative_to(ROOT)} (v{version}) from {len(data)} ESXi/Splunk SPL + "
         f"{len(aria_data)} Aria + {len(redhat_data)} Red Hat + {len(fortinet_data)} Fortinet + "
         f"{len(idrac_data)} Dell iDRAC + {len(ilo_data)} HPE iLO + {len(dhcp_data)} Windows DHCP + "
         f"{len(rdp_data)} Windows RDP + {len(vcf_data)} VMware Cloud Foundation + "
