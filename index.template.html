@@ -642,7 +642,7 @@
 <p class="validations-intro" id="validations-intro" hidden>A <strong>validation catalogue</strong> is not a detection catalogue: each
   entry below is a test-execution reference for confirming an existing detection actually fires,
   not a production rule of its own — the exact command to generate one privileged action (RHEL,
-  FortiGate, or Cisco SD-WAN — see the <span class="tag">Platform</span> filter), whether
+  FortiGate, Cisco SD-WAN, or RHEL IdM/IPA — see the <span class="tag">Platform</span> filter), whether
   it's safe to run in a lab (<span class="tag">SAFE Test</span>), a rollback step, expected platform
   telemetry, and a one-shot presence-check search. See
   <a href="https://github.com/adamliq/Threat-detection-library/blob/main/docs/validations.md" target="_blank" rel="noopener">docs/validations.md</a>
@@ -707,6 +707,7 @@
 <script type="application/json" id="rhel-priv-validations-data">__RHEL_PRIV_VALIDATIONS_JSON__</script>
 <script type="application/json" id="fgt-priv-validations-data">__FGT_PRIV_VALIDATIONS_JSON__</script>
 <script type="application/json" id="csdwan-priv-validations-data">__CSDWAN_PRIV_VALIDATIONS_JSON__</script>
+<script type="application/json" id="ipa-priv-validations-data">__IPA_PRIV_VALIDATIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -735,7 +736,8 @@
   // its fourteen catalogues.
   var VALIDATIONS = JSON.parse(document.getElementById("rhel-priv-validations-data").textContent)
     .concat(JSON.parse(document.getElementById("fgt-priv-validations-data").textContent))
-    .concat(JSON.parse(document.getElementById("csdwan-priv-validations-data").textContent));
+    .concat(JSON.parse(document.getElementById("csdwan-priv-validations-data").textContent))
+    .concat(JSON.parse(document.getElementById("ipa-priv-validations-data").textContent));
 
   // Normalize all fourteen catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
@@ -1784,6 +1786,8 @@
       v.expected_admin_user, v.expected_source_ip, v.expected_interface_ui, v.expected_command_change,
       v.sdwan_manager_context, v.expected_object_config_path, v.expected_telemetry_type,
       v.expected_device_identity, v.expected_task_change_id,
+      v.ipa_area_context, v.ipa_command_family, v.expected_ldap_target, v.expected_admin_principal,
+      v.expected_host_server,
       (v.platform || []).join(" "),
       (v.audit_record_types || []).join(" "),
       (v.expected_fields || []).join(" "),
@@ -1926,6 +1930,16 @@
         ["expected_telemetry_type", "Expected Telemetry Type"], ["expected_admin_user", "Expected Admin/User"],
         ["expected_source_ip", "Expected Source IP"], ["expected_device_identity", "Expected Device Identity"],
         ["expected_task_change_id", "Expected Task/Change ID"], ["expected_command_change", "Expected Command/Change", true],
+        ["expected_fields", "Expected Fields", "list"]
+      ]
+    },
+    {
+      anchor: "ipa_area_context", title: "Expected RHEL IdM/IPA Telemetry",
+      fields: [
+        ["ipa_area_context", "IPA Area / Context", true], ["ipa_command_family", "IPA Command Family", true],
+        ["expected_ldap_target", "Expected LDAP Target", true], ["expected_telemetry_type", "Expected Telemetry Type"],
+        ["expected_admin_principal", "Expected Admin/Principal"], ["expected_source_ip", "Expected Source IP"],
+        ["expected_host_server", "Expected Host/Server"], ["expected_command_change", "Expected Command/Change", true],
         ["expected_fields", "Expected Fields", "list"]
       ]
     }
