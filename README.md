@@ -14,10 +14,10 @@ search/query/CLI reference, and export the current (filtered) result set
 as JSON. A second top-level tab, **Heat Coverage**, shows the whole
 library as an ATT&CK technique × tactic matrix shaded by detection density
 — see [Heat Coverage tab](#heat-coverage-tab) below. A third top-level
-tab, **Validations**, holds this library's first **validation
-catalogue** — test-execution references for confirming an existing
-detection actually fires, not production detection rules of their own —
-see [Validations](#validations) below.
+tab, **Validations**, holds this library's **validation catalogues**
+(RHEL and FortiGate) — test-execution references for confirming an
+existing detection actually fires, not production detection rules of
+their own — see [Validations](#validations) below.
 
 The repo holds fourteen catalogues of detection content, spanning two
 different query languages and sixteen platform families — combined
@@ -1006,33 +1006,39 @@ added shows the Windows tab's coverage jump from 261/474 to
 
 ## Validations
 
-`data/rhel-privileged-action-validations.json` (204 entries) backs a
-third top-level page, **Validations**, alongside Detections and Heat
-Coverage — this library's first entry in a new content type, a
-**validation catalogue**, converted from an uploaded workbook of RHEL
-privileged-action test cases rather than hand-authored.
+Two catalogues back a third top-level page, **Validations**, alongside
+Detections and Heat Coverage — this library's first entries in a new
+content type, a **validation catalogue**, each converted from an
+uploaded workbook of privileged-action test cases rather than
+hand-authored:
+
+- `data/rhel-privileged-action-validations.json` (204 entries, platform `RHEL`)
+- `data/fortigate-privileged-admin-validations.json` (146 entries, platform `FortiGate`)
 
 A validation catalogue entry isn't a detection rule. It's a
 test-execution reference: the exact command to trigger one privileged
-RHEL action once in a lab (`test_step`), how to undo it
-(`rollback_step`), the auditd/Splunk telemetry expected to result, and a
-one-shot `validation_spl` presence check — confirming an *existing*
-detection (principally the Red Hat catalogue's) actually fires, not a
-new production rule of its own. See
+action once in a lab or on a controlled device (`test_step`), how to
+undo it (`rollback_step`), the platform telemetry expected to result,
+and a one-shot `validation_spl` presence check — confirming an
+*existing* detection (the Red Hat and Fortinet catalogues, respectively)
+actually fires, not a new production rule of its own. See
 [`docs/validations.md`](docs/validations.md) for the full rationale, the
-conversion methodology, and two notable discoveries made while resolving
-the workbook's MITRE ATT&CK mappings against the live STIX corpus rather
-than trusting them as given: the workbook's tactic column still used the
-pre-split "Defense Evasion" name, and three of its technique IDs
-(`T1562`, `T1562.001`, `T1562.004`) turned out to be revoked and
+conversion methodology, and the discoveries made while resolving each
+workbook's MITRE ATT&CK mappings against the live STIX corpus rather
+than trusting them as given: both workbooks' tactic columns still used
+the pre-split "Defense Evasion" name, and both used technique IDs
+(`T1562`, `T1562.001`, `T1562.004`) that turned out to be revoked and
 renumbered in the current MITRE release — the same technique family this
-library hit once before in the Aria catalogue.
+library has now hit three times (Aria, then RHEL, then FortiGate).
 
 The Validations page reuses the Detections page's design end to end
 (search, collapsible filter sidebar, card grid, shared detail overlay)
 but is a fully independent view — its own toolbar, its own state, no
 data sharing with the fourteen detection catalogues — so neither page's
-filtering or search state leaks into the other.
+filtering or search state leaks into the other. Both validation
+catalogues share this one page, one card grid, and a `Platform` filter
+facet to tell them apart, the same "many sources, one page" pattern the
+Detections page uses for its fourteen catalogues.
 
 ## Repository layout
 
@@ -1052,6 +1058,7 @@ data/splunk-escu-detections.json  Curated, schema-converted subset of splunk/sec
 data/cisco-detections.json     Canonical source of truth for the Cisco Network Device catalogue (MITRE ATT&CK-driven gap fill).
 data/windows-endpoint-detections.json  Canonical source of truth for the Windows Endpoint catalogue (MITRE ATT&CK-driven gap fill).
 data/rhel-privileged-action-validations.json  Canonical data for the RHEL Privileged Action Validation catalogue — a distinct content type (validations, not detections; see docs/validations.md), shown on its own Validations page.
+data/fortigate-privileged-admin-validations.json  Canonical data for the FortiGate Privileged Admin Action Validation catalogue — a second validation catalogue sharing the Validations page with the RHEL one, disambiguated by the platform field.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 data/mitre-attack-windows.json  MITRE ATT&CK Windows techniques + official Detection Analytics, coverage computed across the AD/RDP/DHCP catalogues, the ESCU catalogue's Windows Endpoint/Windows Network Telemetry entries, and the dedicated Windows Endpoint catalogue.
 data/mitre-attack-cisco.json    MITRE ATT&CK "Network Devices" platform techniques + official Detection Analytics, coverage computed across the ESCU catalogue's Cisco Network/ASA/IOS XE/SD-WAN entries and the dedicated Cisco Network Device catalogue.
@@ -1071,7 +1078,7 @@ docs/ad-detection-library.md  Coverage matrices, Priority Detection Packs, Attac
 docs/splunk-escu-detection-library.md  Curation methodology, coverage matrices, and attribution/license notes for the Splunk ESCU catalogue.
 docs/cisco-detection-library.md  MITRE-gap-fill methodology, coverage matrices, and named-threat cross-references for the Cisco Network Device catalogue.
 docs/windows-endpoint-detection-library.md  MITRE-gap-fill methodology, scoping rationale, and coverage matrices for the Windows Endpoint catalogue.
-docs/validations.md            Why a validation catalogue is a distinct content type, source/conversion methodology, and MITRE ATT&CK resolution notes for the RHEL Privileged Action Validation catalogue.
+docs/validations.md            Why a validation catalogue is a distinct content type, source/conversion methodology, and MITRE ATT&CK resolution notes for the RHEL and FortiGate validation catalogues.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -1087,6 +1094,7 @@ schema/splunk-escu-detection.schema.json  JSON Schema for data/splunk-escu-detec
 schema/cisco-detection.schema.json  JSON Schema for data/cisco-detections.json entries.
 schema/windows-endpoint-detection.schema.json  JSON Schema for data/windows-endpoint-detections.json entries.
 schema/rhel-privileged-action-validation.schema.json  JSON Schema for data/rhel-privileged-action-validations.json entries.
+schema/fortigate-privileged-admin-validation.schema.json  JSON Schema for data/fortigate-privileged-admin-validations.json entries.
 index.template.html            Combined-library page shell (CSS/JS) with markers for all fourteen detection data files plus the validation data file.
 index.html                     Generated: template + all fourteen detection data files plus the validation data file. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
 tools/build.py                 Regenerates index.html from all fourteen detection data/*.json files plus data/rhel-privileged-action-validations.json.
@@ -1645,19 +1653,27 @@ same curation/conversion approach documented in
 [`docs/splunk-escu-detection-library.md`](docs/splunk-escu-detection-library.md)
 instead.
 
-**Note on `data/rhel-privileged-action-validations.json` specifically:**
-this file is not one of the fourteen detection catalogues above and
-doesn't follow the same process — it's a different content type (a
+**Note on `data/rhel-privileged-action-validations.json` and
+`data/fortigate-privileged-admin-validations.json` specifically:**
+neither file is one of the fourteen detection catalogues above and
+neither follows the same process — they're a different content type (a
 validation catalogue; see [Validations](#validations) and
-[`docs/validations.md`](docs/validations.md)), shown on its own
-Validations page rather than the Detections page, validated against
-`schema/rhel-privileged-action-validation.schema.json` rather than
-`schema/detection.schema.json`, and it has no `COVERAGE_PLATFORMS` entry
-in the ATT&CK Coverage browser since it isn't a set of production
-detection rules to compute technique coverage over. Its IDs still count
-toward `tools/build.py`'s cross-catalogue uniqueness check (step 1 above)
-alongside the fourteen detection files, since both content types share
-the same URL-hash deep-linking.
+[`docs/validations.md`](docs/validations.md)), shown on their own shared
+Validations page rather than the Detections page, each validated against
+its own schema (`schema/rhel-privileged-action-validation.schema.json` /
+`schema/fortigate-privileged-admin-validation.schema.json`) rather than
+`schema/detection.schema.json`, and neither has a `COVERAGE_PLATFORMS`
+entry in the ATT&CK Coverage browser since neither is a set of
+production detection rules to compute technique coverage over. Their IDs
+still count toward `tools/build.py`'s cross-catalogue uniqueness check
+(step 1 above) alongside the fourteen detection files, since all these
+content types share the same URL-hash deep-linking. Adding a third
+validation catalogue means: its own schema, its own data file, a new
+marker/constant/`check_ids` call in `tools/build.py`, and a new entry in
+`index.template.html`'s `VALIDATIONS` array concatenation — plus a new
+telemetry field group in `validationDetailHtml`'s
+`VALIDATION_TELEMETRY_GROUPS` if its raw telemetry fields don't match an
+existing platform's.
 
 ## Disclaimer
 
