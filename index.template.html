@@ -153,7 +153,6 @@
   }
   .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
   .brand > div { min-width: 0; }
-  .brand .sub { overflow-wrap: break-word; }
   .brand-mark {
     width: 30px; height: 30px; border-radius: 8px;
     background: linear-gradient(145deg, var(--accent), #6d1a22);
@@ -161,7 +160,12 @@
     color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
   }
   .brand h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
-  .brand .sub { font-size: 12px; color: var(--text-faint); }
+
+  /* Library-wide stats line lives below the view tabs, not in the header,
+     so it never wraps into the space between the title and the search bar
+     on narrow viewports. */
+  .lib-stats-wrap { max-width: 1320px; margin: 0 auto; padding: 8px 20px 0; }
+  .lib-stats { font-size: 12px; color: var(--text-faint); overflow-wrap: break-word; }
 
   .search-wrap { flex: 1 1 320px; min-width: 220px; position: relative; }
   .search-wrap input {
@@ -523,7 +527,7 @@
   .heat-unavailable h3 { color: var(--text); margin: 0 0 6px; }
 
   @media (max-width: 880px) {
-    .view-tabs-wrap, .heat-view { padding-left: 14px; padding-right: 14px; }
+    .view-tabs-wrap, .heat-view, .lib-stats-wrap { padding-left: 14px; padding-right: 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .heat-cell, .heat-tooltip { transition: none; }
@@ -538,7 +542,6 @@
       <span class="brand-mark">TD</span>
       <div>
         <h1>Threat Detection Library</h1>
-        <div class="sub" id="stats-line">&nbsp;</div>
       </div>
     </div>
     <div class="search-wrap">
@@ -568,6 +571,10 @@
     <button class="view-tab" id="view-tab-heat" role="tab" aria-selected="false">Heat Coverage</button>
     <button class="view-tab" id="view-tab-validations" role="tab" aria-selected="false">Validations</button>
   </div>
+</div>
+
+<div class="lib-stats-wrap">
+  <div class="lib-stats" id="stats-line">&nbsp;</div>
 </div>
 
 <div class="layout" id="detections-view">
