@@ -425,6 +425,16 @@
   .view-tab:hover { color: var(--text); }
   .view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   body.heat-active .search-wrap, body.heat-active #export-btn, body.heat-active .filter-toggle-btn { display: none; }
+  /* Validations has its own search/filter toolbar inside #validations-view, so
+     only the header's copies (scoped via .app-header) are hidden here -- an
+     unscoped rule would also hide the validations toolbar's own widgets, since
+     they share the same classes for consistent styling. */
+  body.validations-active .app-header .search-wrap,
+  body.validations-active #export-btn,
+  body.validations-active .app-header .filter-toggle-btn { display: none; }
+  .validations-intro { font-size: 13.5px; color: var(--text-muted); max-width: 1320px; margin: 14px auto 0; padding: 0 20px 4px; box-sizing: border-box; }
+  .validations-intro[hidden] { display: none; }
+  .validations-intro .tag { font-size: 11px; padding: 1px 7px; }
 
   /* ---------------------------- Heat Coverage view ---------------------------- */
   .heat-view { max-width: 1320px; margin: 0 auto; padding: 20px; }
@@ -556,6 +566,7 @@
   <div class="view-tabs" role="tablist" aria-label="View">
     <button class="view-tab active" id="view-tab-detections" role="tab" aria-selected="true">Detections</button>
     <button class="view-tab" id="view-tab-heat" role="tab" aria-selected="false">Heat Coverage</button>
+    <button class="view-tab" id="view-tab-validations" role="tab" aria-selected="false">Validations</button>
   </div>
 </div>
 
@@ -615,6 +626,43 @@
   </div>
 </section>
 
+<p class="validations-intro" id="validations-intro" hidden>A <strong>validation catalogue</strong> is not a detection catalogue: each
+  entry below is a test-execution reference for confirming an existing detection actually fires,
+  not a production rule of its own — the exact command to generate one privileged RHEL action, whether
+  it's safe to run in a lab (<span class="tag">SAFE Test</span>), a rollback step, expected auditd/Splunk
+  telemetry, and a one-shot presence-check search. See
+  <a href="https://github.com/adamliq/Threat-detection-library/blob/main/docs/validations.md" target="_blank" rel="noopener">docs/validations.md</a>
+  for the full rationale.</p>
+
+<div class="layout" id="validations-view" hidden>
+  <aside class="sidebar" id="validations-sidebar">
+    <div class="sidebar-mobile-head">
+      <span>Filters</span>
+      <button class="close-btn" id="validations-sidebar-close" aria-label="Close filters">&times;</button>
+    </div>
+    <div class="sidebar-content" id="validations-sidebar-content"></div>
+  </aside>
+  <div class="sidebar-backdrop" id="validations-sidebar-backdrop"></div>
+  <main class="main">
+    <div class="results-bar">
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="validations-search-input" placeholder="Search validations, actions, audit keys, commands&hellip;" autocomplete="off">
+      </div>
+      <button class="icon-btn filter-toggle-btn" id="validations-filter-toggle-btn" title="Filters" aria-label="Toggle filters" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+        <span>Filters</span>
+        <span class="filter-count-badge" id="validations-filter-count-badge" hidden>0</span>
+      </button>
+    </div>
+    <div class="results-bar">
+      <div class="results-count" id="validations-results-count"></div>
+      <div class="active-filters" id="validations-active-filters"></div>
+    </div>
+    <div class="card-grid" id="validations-card-grid"></div>
+  </main>
+</div>
+
 <div class="overlay" id="overlay" hidden>
   <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true"></div>
 </div>
@@ -642,6 +690,7 @@
 <script type="application/json" id="escu-detections-data">__ESCU_DETECTIONS_JSON__</script>
 <script type="application/json" id="cisco-detections-data">__CISCO_DETECTIONS_JSON__</script>
 <script type="application/json" id="wend-detections-data">__WEND_DETECTIONS_JSON__</script>
+<script type="application/json" id="rhel-priv-validations-data">__RHEL_PRIV_VALIDATIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -660,6 +709,11 @@
   var ESCU_ENTRIES = JSON.parse(document.getElementById("escu-detections-data").textContent);
   var CISCO_ENTRIES = JSON.parse(document.getElementById("cisco-detections-data").textContent);
   var WEND_ENTRIES = JSON.parse(document.getElementById("wend-detections-data").textContent);
+  // Validation entries are a distinct content type (test-execution references,
+  // not production detection rules -- see docs/validations.md) and deliberately
+  // stay out of the DATA array/Detections search-filter-card pipeline below;
+  // they get their own parallel pipeline further down instead.
+  var VALIDATIONS = JSON.parse(document.getElementById("rhel-priv-validations-data").textContent);
 
   // Normalize all fourteen catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
@@ -1146,6 +1200,7 @@
   function closeDetail() {
     document.getElementById("overlay").hidden = true;
     state.activeId = null;
+    validationState.activeId = null;
     if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
   }
   document.getElementById("overlay").addEventListener("click", function (e) {
@@ -1673,24 +1728,375 @@
     renderHeatView();
   });
 
+  /* ---------------------------- Validations ---------------------------- */
+  // A parallel, self-contained pipeline mirroring the Detections page's
+  // design (search, collapsible filter sidebar, card grid, shared detail
+  // overlay) but for a distinct content type -- see docs/validations.md.
+  var validationState = { query: "", category: null, eventType: null, priority: null, tactic: null, safeTest: null, activeId: null };
+  var validationExpandedGroups = { category: false, eventType: false, priority: false, tactic: false, safeTest: false };
+  var VALIDATION_PRIORITY_ORDER = ["Critical", "High", "Medium", "Low"];
+
+  function findValidationById(id) { return VALIDATIONS.filter(function (v) { return v.id === id; })[0]; }
+
+  function allValidationValues(getKey) {
+    var set = {};
+    VALIDATIONS.forEach(function (v) { var k = getKey(v); if (k) set[k] = true; });
+    return Object.keys(set).sort();
+  }
+  function allValidationTactics() {
+    var set = {};
+    VALIDATIONS.forEach(function (v) { (v.mitre_attack.tactics || []).forEach(function (t) { set[t.name] = true; }); });
+    return Object.keys(set).sort();
+  }
+
+  function matchesValidationQuery(v, q) {
+    if (!q) return true;
+    q = q.toLowerCase();
+    var haystack = [
+      v.id, v.title, v.description, v.category, v.category_sub, v.event_type, v.typical_mechanism,
+      v.action, v.object_type, v.test_step, v.audit_key, v.expected_executable, v.expected_path,
+      v.validation_spl, v.notes,
+      (v.audit_record_types || []).join(" "),
+      (v.expected_fields || []).join(" "),
+      (v.splunk_sourcetype || []).join(" "),
+      (v.mitre_attack.techniques || []).map(function (t) { return t.id + " " + t.name; }).join(" ")
+    ].join(" ").toLowerCase();
+    return haystack.indexOf(q) !== -1;
+  }
+  function matchesValidationFilters(v) {
+    if (validationState.category && v.category !== validationState.category) return false;
+    if (validationState.eventType && v.event_type !== validationState.eventType) return false;
+    if (validationState.priority && v.detection_priority !== validationState.priority) return false;
+    if (validationState.tactic && (v.mitre_attack.tactics || []).every(function (t) { return t.name !== validationState.tactic; })) return false;
+    if (validationState.safeTest !== null && v.safe_test !== validationState.safeTest) return false;
+    return true;
+  }
+  function currentValidationResults() {
+    return VALIDATIONS.filter(function (v) { return matchesValidationQuery(v, validationState.query) && matchesValidationFilters(v); });
+  }
+
+  function renderValidationSidebar() {
+    var sidebar = document.getElementById("validations-sidebar-content");
+
+    function section(title, options, activeKey, groupKey) {
+      var isExpanded = !!validationExpandedGroups[groupKey];
+      var html = '<div class="filter-group' + (isExpanded ? ' expanded' : '') + '" data-group="' + groupKey + '">' +
+        '<h3 data-group-toggle="' + groupKey + '">' +
+        '<span class="filter-group-toggle" aria-hidden="true">&#9656;</span>' +
+        '<span class="filter-group-title">' + esc(title) + '</span>';
+      if (activeKey) html += ' <button class="clear-filters filter-group-clear" data-clear="' + groupKey + '">clear</button>';
+      html += '</h3><div class="filter-options">';
+      options.forEach(function (opt) {
+        var isActive = activeKey === opt.key;
+        html += '<div class="filter-option' + (isActive ? ' active' : '') + '" data-facet="' + groupKey + '" data-value="' + esc(opt.key) + '">' +
+          '<span>' + esc(opt.label) + '</span><span class="count">' + opt.count + '</span></div>';
+      });
+      html += '</div></div>';
+      return html;
+    }
+
+    var categoryCounts = {};
+    VALIDATIONS.forEach(function (v) { if (v.category) categoryCounts[v.category] = (categoryCounts[v.category] || 0) + 1; });
+    var categoryOpts = allValidationValues(function (v) { return v.category; }).map(function (c) { return { key: c, label: c, count: categoryCounts[c] || 0 }; });
+
+    var eventTypeCounts = {};
+    VALIDATIONS.forEach(function (v) { if (v.event_type) eventTypeCounts[v.event_type] = (eventTypeCounts[v.event_type] || 0) + 1; });
+    var eventTypeOpts = allValidationValues(function (v) { return v.event_type; }).map(function (e) { return { key: e, label: e, count: eventTypeCounts[e] || 0 }; });
+
+    var priorityCounts = {};
+    VALIDATIONS.forEach(function (v) { if (v.detection_priority) priorityCounts[v.detection_priority] = (priorityCounts[v.detection_priority] || 0) + 1; });
+    var priorityOpts = VALIDATION_PRIORITY_ORDER.filter(function (p) { return priorityCounts[p]; }).map(function (p) { return { key: p, label: p, count: priorityCounts[p] }; });
+
+    var tacticCounts = {};
+    VALIDATIONS.forEach(function (v) { (v.mitre_attack.tactics || []).forEach(function (t) { tacticCounts[t.name] = (tacticCounts[t.name] || 0) + 1; }); });
+    var tacticOpts = allValidationTactics().map(function (t) { return { key: t, label: t, count: tacticCounts[t] || 0 }; });
+
+    var safeCounts = { "Y": 0, "N": 0 };
+    VALIDATIONS.forEach(function (v) { safeCounts[v.safe_test ? "Y" : "N"]++; });
+    var safeOpts = [
+      { key: "Y", label: "Safe for lab testing", count: safeCounts.Y },
+      { key: "N", label: "Not lab-safe", count: safeCounts.N }
+    ].filter(function (o) { return o.count; });
+
+    sidebar.innerHTML =
+      section("Category", categoryOpts, validationState.category, "category") +
+      section("Event Type", eventTypeOpts, validationState.eventType, "eventType") +
+      section("Detection Priority", priorityOpts, validationState.priority, "priority") +
+      section("MITRE ATT&CK Tactic", tacticOpts, validationState.tactic, "tactic") +
+      section("SAFE Test", safeOpts, validationState.safeTest === null ? null : (validationState.safeTest ? "Y" : "N"), "safeTest");
+
+    sidebar.querySelectorAll(".filter-option").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var facet = el.getAttribute("data-facet");
+        var value = el.getAttribute("data-value");
+        if (facet === "safeTest") {
+          var boolVal = value === "Y";
+          validationState.safeTest = validationState.safeTest === boolVal ? null : boolVal;
+        } else {
+          validationState[facet] = validationState[facet] === value ? null : value;
+        }
+        renderValidations();
+      });
+    });
+    sidebar.querySelectorAll(".clear-filters").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var key = el.getAttribute("data-clear");
+        validationState[key] = key === "safeTest" ? null : null;
+        renderValidations();
+      });
+    });
+    sidebar.querySelectorAll("[data-group-toggle]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var key = el.getAttribute("data-group-toggle");
+        validationExpandedGroups[key] = !validationExpandedGroups[key];
+        renderValidationSidebar();
+      });
+    });
+  }
+
+  var PRIORITY_BADGE_CLASS = { "Critical": "critical", "High": "high", "Medium": "medium", "Low": "low" };
+  function validationCardHtml(v) {
+    var techniques = (v.mitre_attack.techniques || []).map(function (t) { return t.id; });
+    var tactics = (v.mitre_attack.tactics || []).map(function (t) { return t.name; });
+    var badgeClass = PRIORITY_BADGE_CLASS[v.detection_priority] || "";
+    return '<div class="card" data-id="' + esc(v.id) + '" tabindex="0">' +
+      '<div class="card-top"><div>' +
+      '<div class="card-id">' + esc(v.id) + '</div>' +
+      '<div class="card-title">' + esc(v.title) + '</div></div>' +
+      (badgeClass ? '<span class="badge ' + badgeClass + '">' + esc(v.detection_priority) + '</span>' : '') +
+      '</div>' +
+      '<div class="card-desc">' + esc(v.description || "") + '</div>' +
+      '<div class="tag-row">' +
+      '<span class="tag">' + esc(v.category) + '</span>' +
+      (v.safe_test ? '<span class="tag">SAFE Test</span>' : '') +
+      techniques.map(function (t) { return '<span class="tag mitre">' + esc(t) + '</span>'; }).join("") +
+      tactics.slice(0, 2).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("") +
+      '</div>' +
+      '<div class="card-foot"><span>' + esc(v.event_type || "") + '</span><span>' + esc(v.category_sub || "") + '</span></div>' +
+      '</div>';
+  }
+
+  function renderValidationChips() {
+    var wrap = document.getElementById("validations-active-filters");
+    var chips = [];
+    if (validationState.category) chips.push({ k: "category", label: "Category: " + validationState.category });
+    if (validationState.eventType) chips.push({ k: "eventType", label: "Event type: " + validationState.eventType });
+    if (validationState.priority) chips.push({ k: "priority", label: "Priority: " + validationState.priority });
+    if (validationState.tactic) chips.push({ k: "tactic", label: "Tactic: " + validationState.tactic });
+    if (validationState.safeTest !== null) chips.push({ k: "safeTest", label: validationState.safeTest ? "Safe for lab testing" : "Not lab-safe" });
+    wrap.innerHTML = chips.map(function (c) {
+      return '<button class="filter-chip" data-facet="' + c.k + '">' + esc(c.label) + ' <span class="x">&times;</span></button>';
+    }).join("");
+    wrap.querySelectorAll(".filter-chip").forEach(function (el) {
+      el.addEventListener("click", function () { validationState[el.getAttribute("data-facet")] = null; renderValidations(); });
+    });
+  }
+
+  function renderValidationGrid() {
+    var results = currentValidationResults();
+    var grid = document.getElementById("validations-card-grid");
+    document.getElementById("validations-results-count").textContent =
+      results.length + " validation" + (results.length === 1 ? "" : "s") +
+      (results.length !== VALIDATIONS.length ? " of " + VALIDATIONS.length : "");
+
+    if (!results.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No validations match</h3><p>Try clearing a filter or a different search term.</p></div>';
+      return;
+    }
+    grid.innerHTML = results.map(validationCardHtml).join("");
+    grid.querySelectorAll(".card").forEach(function (el) {
+      el.addEventListener("click", function () { openValidationDetail(el.getAttribute("data-id")); });
+      el.addEventListener("keydown", function (e) { if (e.key === "Enter") openValidationDetail(el.getAttribute("data-id")); });
+    });
+  }
+
+  function updateValidationFilterCountBadge() {
+    var count = ["query", "category", "eventType", "priority", "tactic"].filter(function (k) { return validationState[k]; }).length +
+      (validationState.safeTest !== null ? 1 : 0);
+    var badge = document.getElementById("validations-filter-count-badge");
+    badge.textContent = count;
+    badge.hidden = count === 0;
+  }
+
+  function renderValidations() {
+    renderValidationSidebar();
+    renderValidationChips();
+    renderValidationGrid();
+    updateValidationFilterCountBadge();
+  }
+
+  function validationDetailHtml(v) {
+    var techniques = (v.mitre_attack.techniques || []).map(function (t) {
+      return '<tr><td>' + esc(t.id) + '</td><td>' + esc(t.name) +
+        (t.note ? ' <span class="coverage-note">(' + esc(t.note) + ')</span>' : '') +
+        (t.url ? ' &mdash; <a href="' + esc(t.url) + '" target="_blank" rel="noopener">attack.mitre.org</a>' : '') + '</td></tr>';
+    }).join("");
+    var tactics = (v.mitre_attack.tactics || []).map(function (t) { return esc(t.name); }).join(", ") || "&mdash;";
+    var badgeClass = PRIORITY_BADGE_CLASS[v.detection_priority] || "";
+
+    function kv(label, val, mono) {
+      if (!val) return "";
+      return '<tr><td>' + esc(label) + '</td><td>' + (mono ? '<code>' + esc(val) + '</code>' : esc(val)) + '</td></tr>';
+    }
+    function kvList(label, arr) {
+      if (!arr || !arr.length) return "";
+      return '<tr><td>' + esc(label) + '</td><td>' + arr.map(function (x) { return '<code>' + esc(x) + '</code>'; }).join(", ") + '</td></tr>';
+    }
+
+    var actionRows = kv("Category", v.category + (v.category_sub ? " / " + v.category_sub : "")) +
+      kv("Event Type", v.event_type) + kv("Action", v.action) + kv("Object Type", v.object_type) +
+      kv("Privilege Level", v.privilege_level) + kv("Privilege Transition", v.privilege_transition) +
+      kv("Typical Mechanism", v.typical_mechanism) + kv("Expected Result", v.expected_result) +
+      kv("Status", v.status) + kv("Security Significance", v.security_significance) +
+      kv("Primary Telemetry", v.primary_telemetry);
+
+    var testRows = '<tr><td>SAFE Test</td><td>' + (v.safe_test ? '<span class="tag">Yes &mdash; safe for controlled lab testing</span>' : '<span class="tag">No &mdash; not suitable for uncontrolled testing</span>') + '</td></tr>' +
+      kv("Test Environment", v.test_environment) + kv("Rollback Step", v.rollback_step) +
+      kv("Evidence Expected", v.evidence_expected) + kv("Telemetry Coverage", v.telemetry_coverage) +
+      kv("Test Result", v.test_result);
+
+    var auditRows = kv("Audit Key", v.audit_key, true) + kvList("Audit Record Types", v.audit_record_types) +
+      kv("Expected Syscall", v.expected_syscall) + kv("Expected Executable", v.expected_executable, true) +
+      kv("Expected Path", v.expected_path, true) + kv("Expected AUID", v.expected_auid) +
+      kv("Expected UID", v.expected_uid) + kv("Expected EUID", v.expected_euid) +
+      kv("Expected Command", v.expected_command, true) + kvList("Expected Fields", v.expected_fields);
+
+    var splunkRows = kvList("Sourcetype", v.splunk_sourcetype) + kv("CIM Data Model", v.cim_data_model) + kv("CIM Action", v.cim_action);
+
+    var detectionRows = kv("Detection Priority", v.detection_priority) +
+      '<tr><td>Detection Required</td><td>' + (v.detection_required ? "Yes" : "No") + '</td></tr>' +
+      kv("Alert Required", v.alert_required) + kv("Compliance Relevant", v.compliance_relevant) +
+      kv("CIS Reference", v.cis_reference) + kv("STIG Reference", v.stig_reference) + kv("ISM Reference", v.ism_reference);
+
+    return '' +
+      '<div class="detail-header">' +
+        '<div>' +
+          '<div class="detail-title">' + esc(v.id) + ' — ' + esc(v.title) + '</div>' +
+          '<div class="detail-badges">' +
+            (badgeClass ? '<span class="badge ' + badgeClass + '">' + esc(v.detection_priority) + '</span>' : '') +
+            '<span class="tag">' + esc(v.category) + '</span>' +
+            '<span class="tag">' + esc(v.event_type || "") + '</span>' +
+            (v.safe_test ? '<span class="tag">SAFE Test</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<button class="close-btn" id="detail-close" aria-label="Close">&times;</button>' +
+      '</div>' +
+      '<div class="detail-body">' +
+        '<div class="detail-section"><p>' + esc(v.description || "") + '</p></div>' +
+
+        '<div class="detail-section"><h4>MITRE ATT&amp;CK</h4>' +
+          '<table class="kv-table"><tr><td>Tactic(s)</td><td>' + tactics + '</td></tr></table>' +
+          (techniques ? '<table class="kv-table" style="margin-top:4px">' + techniques + '</table>' :
+            '<p class="coverage-note" style="margin-top:8px">No technique resolved for this action in the source workbook.</p>') +
+        '</div>' +
+
+        '<div class="detail-section"><h4>Privileged Action</h4><table class="kv-table">' + actionRows + '</table></div>' +
+
+        (v.test_step ? '<div class="detail-section"><h4>Test Step (generates the event)</h4>' +
+          '<div class="code-block"><button class="copy-btn" data-copy="test_step">Copy</button>' + esc(v.test_step) + '</div></div>' : '') +
+
+        '<div class="detail-section"><h4>Validation &amp; Rollback</h4><table class="kv-table">' + testRows + '</table></div>' +
+
+        (v.validation_spl ? '<div class="detail-section"><h4>Validation Search (Splunk SPL, presence check only)</h4>' +
+          '<div class="code-block"><button class="copy-btn" data-copy="validation_spl">Copy</button>' + esc(v.validation_spl) + '</div></div>' : '') +
+
+        (auditRows ? '<div class="detail-section"><h4>Expected auditd Telemetry</h4><table class="kv-table">' + auditRows + '</table></div>' : '') +
+
+        (splunkRows ? '<div class="detail-section"><h4>Splunk Mapping</h4><table class="kv-table">' + splunkRows + '</table></div>' : '') +
+
+        '<div class="detail-section"><h4>Detection &amp; Compliance</h4><table class="kv-table">' + detectionRows + '</table></div>' +
+
+        (v.notes ? '<div class="detail-section"><h4>Notes</h4><p>' + esc(v.notes) + '</p></div>' : '') +
+
+        '<table class="kv-table" style="margin-top:4px">' +
+          '<tr><td>Author</td><td>' + esc(v.author) + '</td></tr>' +
+          '<tr><td>Created / Modified</td><td>' + esc(v.created) + ' / ' + esc(v.modified) + '</td></tr>' +
+          '<tr><td>Version</td><td>' + esc(v.version) + '</td></tr>' +
+          '<tr><td>ID</td><td><code>' + esc(v.id) + '</code></td></tr>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function openValidationDetail(id) {
+    var v = findValidationById(id);
+    if (!v) return;
+    validationState.activeId = id;
+    document.getElementById("detail-panel").innerHTML = validationDetailHtml(v);
+    var overlay = document.getElementById("overlay");
+    overlay.hidden = false;
+    document.getElementById("detail-panel").scrollTop = 0;
+    overlay.scrollTop = 0;
+    document.getElementById("detail-close").addEventListener("click", closeDetail);
+    document.querySelectorAll(".copy-btn").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var field = el.getAttribute("data-copy");
+        copyToClipboard(v[field] || "");
+      });
+    });
+    if (history.replaceState) history.replaceState(null, "", "#" + id);
+  }
+
+  /* ---------------------------- Validations mobile filter drawer ---------------------------- */
+  var validationsSidebarEl = document.getElementById("validations-sidebar");
+  var validationsSidebarBackdrop = document.getElementById("validations-sidebar-backdrop");
+  var validationsFilterToggleBtn = document.getElementById("validations-filter-toggle-btn");
+  function openValidationsSidebar() {
+    validationsSidebarEl.classList.add("open");
+    validationsSidebarBackdrop.classList.add("show");
+    validationsFilterToggleBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeValidationsSidebar() {
+    validationsSidebarEl.classList.remove("open");
+    validationsSidebarBackdrop.classList.remove("show");
+    validationsFilterToggleBtn.setAttribute("aria-expanded", "false");
+  }
+  validationsFilterToggleBtn.addEventListener("click", function () {
+    if (validationsSidebarEl.classList.contains("open")) { closeValidationsSidebar(); } else { openValidationsSidebar(); }
+  });
+  validationsSidebarBackdrop.addEventListener("click", closeValidationsSidebar);
+  document.getElementById("validations-sidebar-close").addEventListener("click", closeValidationsSidebar);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && validationsSidebarEl.classList.contains("open")) closeValidationsSidebar();
+  });
+
+  document.getElementById("validations-search-input").addEventListener("input", function (e) {
+    validationState.query = e.target.value.trim();
+    renderValidations();
+  });
+
+  var validationsRendered = false;
+
   /* ---------------------------- View tabs ---------------------------- */
   var viewTabDetections = document.getElementById("view-tab-detections");
   var viewTabHeat = document.getElementById("view-tab-heat");
+  var viewTabValidations = document.getElementById("view-tab-validations");
   var detectionsViewEl = document.getElementById("detections-view");
   var heatViewEl = document.getElementById("heat-view");
+  var validationsViewEl = document.getElementById("validations-view");
+  var validationsIntroEl = document.getElementById("validations-intro");
   function switchView(view) {
     var toHeat = view === "heat";
-    detectionsViewEl.hidden = toHeat;
+    var toValidations = view === "validations";
+    var toDetections = !toHeat && !toValidations;
+    detectionsViewEl.hidden = !toDetections;
     heatViewEl.hidden = !toHeat;
-    viewTabDetections.classList.toggle("active", !toHeat);
-    viewTabDetections.setAttribute("aria-selected", String(!toHeat));
+    validationsViewEl.hidden = !toValidations;
+    validationsIntroEl.hidden = !toValidations;
+    viewTabDetections.classList.toggle("active", toDetections);
+    viewTabDetections.setAttribute("aria-selected", String(toDetections));
     viewTabHeat.classList.toggle("active", toHeat);
     viewTabHeat.setAttribute("aria-selected", String(toHeat));
+    viewTabValidations.classList.toggle("active", toValidations);
+    viewTabValidations.setAttribute("aria-selected", String(toValidations));
     document.body.classList.toggle("heat-active", toHeat);
+    document.body.classList.toggle("validations-active", toValidations);
     if (toHeat && !heatRendered) renderHeatView();
+    if (toValidations && !validationsRendered) { renderValidations(); validationsRendered = true; }
   }
   viewTabDetections.addEventListener("click", function () { switchView("detections"); });
   viewTabHeat.addEventListener("click", function () { switchView("heat"); });
+  viewTabValidations.addEventListener("click", function () { switchView("validations"); });
 
   /* ---------------------------- Render / bootstrap ---------------------------- */
   function render() {
@@ -1704,7 +2110,12 @@
   loadHeatUniverse();
 
   var initialId = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
-  if (initialId && findById(initialId)) openDetail(initialId);
+  if (initialId && findById(initialId)) {
+    openDetail(initialId);
+  } else if (initialId && findValidationById(initialId)) {
+    switchView("validations");
+    openValidationDetail(initialId);
+  }
 })();
 </script>
 </body>
