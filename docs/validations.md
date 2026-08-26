@@ -1,16 +1,17 @@
 # Validations
 
-Two catalogues back this library's **Validations** page — a top-level
+Three catalogues back this library's **Validations** page — a top-level
 view, alongside **Detections** and **Heat Coverage**, and this library's
 first entries in a new content type: a **validation catalogue**, not a
 detection catalogue.
 
 - `data/rhel-privileged-action-validations.json` (204 entries, `RHEL`)
 - `data/fortigate-privileged-admin-validations.json` (146 entries, `FortiGate`)
+- `data/cisco-sdwan-privileged-admin-validations.json` (145 entries, `Cisco SD-WAN`)
 
-Both share one page, one card grid, one detail-panel design, and one
-`platform` filter facet to tell them apart — the same "many sources, one
-page" pattern the Detections page already uses for its fourteen
+All three share one page, one card grid, one detail-panel design, and
+one `platform` filter facet to tell them apart — the same "many sources,
+one page" pattern the Detections page already uses for its fourteen
 catalogues.
 
 ## Why this is a separate content type, not a fifteenth detection catalogue
@@ -30,9 +31,9 @@ Put simply: a detection catalogue entry watches continuously for an
 action happening. A validation entry is a recipe for causing that action
 to happen once, on purpose, in a controlled environment, so you can
 confirm the watching actually works — a test-execution reference for the
-existing catalogues (the Red Hat and Fortinet catalogues, respectively),
-not a new production capability of its own. See the Validations page's
-own intro text for the same explanation in the UI.
+existing catalogues (the Red Hat, Fortinet, and Cisco catalogues,
+respectively), not a new production capability of its own. See the
+Validations page's own intro text for the same explanation in the UI.
 
 ## RHEL Privileged Action Validation Catalogue
 
@@ -212,21 +213,107 @@ actions are disruptive by nature (disabling HA, changing routing,
 modifying a firewall policy, rebooting) but a meaningful share (creating
 test objects, viewing configuration) are safe to exercise directly.
 
+## Cisco SD-WAN Privileged Admin Action Validation Catalogue
+
+### Source and conversion
+
+The source is a third uploaded workbook, "Cisco SD-WAN Privileged Admin
+Actions (Enriched)" — the same three-sheet shape again, 145 rows,
+`CSDWAN-PRIV-001` through `CSDWAN-PRIV-145`, across 35 categories
+(Administrator, RBAC, Device Template, Centralized Policy, Routing, BGP,
+Certificate, Cloud OnRamp, and more) covering Cisco SD-WAN Manager
+(formerly vManage) and WAN Edge device administration. In place of
+FortiGate's CLI/config-path columns, this workbook carries SD-WAN
+Manager-specific ones — Manager Area / Context, Expected Object/Config
+Path, Expected Telemetry Type, Expected Admin/User, Expected Source IP,
+Expected Device Identity, Expected Task/Change ID, Expected
+Command/Change — reflecting that an SD-WAN controller's privileged-action
+evidence centers on a Manager audit log plus a device/task identity
+(system-ip, device UUID, deployment/task ID) rather than a firewall's
+CLI config-path trail or a Linux syscall/AUID one.
+
+Converted the same way: programmatically, one entry per row, into
+`data/cisco-sdwan-privileged-admin-validations.json` against
+`schema/cisco-sdwan-privileged-admin-validation.schema.json`. `platform`
+is `["Cisco SD-WAN"]` on every entry — chosen as a clean, distinct label
+since this deployment (SD-WAN Manager/WAN Edge) doesn't share a
+`component` value with the existing `data/cisco-detections.json`
+catalogue (which scopes to `Cisco IOS/IOS XE`, `Cisco ASA/FTD`, and
+generic `Cisco Network Device`, none of which cover SD-WAN Manager).
+
+### MITRE ATT&CK mapping: the T1562 family strikes a fourth time
+
+Same live-resolution discipline as the other two catalogues, and the
+same pre-split "Defense Evasion" tactic-name problem in the workbook's
+own tactic column. The `T1562.001`/`T1562.004` revoked-technique pair
+reappears here too (6 and 23 rows respectively) — this technique
+family's renumbering has now had to be corrected **four** times across
+this library's history (Aria, RHEL, FortiGate, now Cisco SD-WAN), the
+same root cause every time: none of the source material was regenerated
+against a current MITRE release.
+
+This workbook's `ATT&CK Technique` column has the same mixed
+`Txxxx - Name`/`Txxxx / note`/no-code shapes the FortiGate one had; all
+14 distinct raw values were again inspected by hand rather than
+regex-parsed generically. Two multi-word free-text rows with no real
+technique code ("Network configuration manipulation (context
+dependent)", 26 rows) fall back to the workbook's own tactic column with
+"Defense Evasion" dropped, same rule as the other two catalogues.
+
+**Result:** 87 of 145 entries (60%) carry a resolved, currently-valid
+MITRE technique — the lowest resolution rate of the three catalogues,
+because a larger share of this workbook's rows are generic
+network/routing/policy configuration changes without a single clean
+ATT&CK technique to anchor them; 10 distinct techniques across 9
+tactics. Of the 58 entries with no technique, 26 still land a tactic
+from the workbook's own tactic column; the remaining 32 carry no
+tactic/technique at all.
+
+### Cisco SD-WAN by the numbers
+
+| Category (top 10 of 35) | Count |
+|---|---:|
+| Administrator | 8 |
+| System | 8 |
+| Diagnostics | 8 |
+| Interface | 7 |
+| Security | 7 |
+| Software | 7 |
+| VPN | 6 |
+| Device | 6 |
+| Controller | 6 |
+| Certificate | 6 |
+
+| Detection Priority | Count | | SAFE Test | Count |
+|---|---:|---|---|---:|
+| Critical | 76 | | Yes (lab-safe) | 68 |
+| High | 56 | | No | 77 |
+| Medium | 9 | | | |
+| Low | 4 | | | |
+
+Priority again skews Critical/High (132 of 145), same rationale as the
+other two catalogues. `SAFE Test` is close to an even split (68/145
+lab-safe), similar to FortiGate — many SD-WAN administrative actions
+(centralized policy pushes, routing changes, device template edits) are
+disruptive by nature, but a meaningful share (creating test objects,
+read-only diagnostics) are safe to exercise directly.
+
 ## What's in each entry
 
-`platform` is an array on every entry (`["RHEL"]` or `["FortiGate"]`
-today) and is a real facet in the Validations page's filter sidebar, not
-just a data-model formality — it's what lets one page and one card grid
-serve multiple validation catalogues without them being confused for
-each other. A future validation catalogue for another platform slots in
-the same way: its own schema, its own data file, a new entry in the
-page's `VALIDATIONS` array, and (if its raw telemetry fields don't match
-an existing platform's) a new telemetry field group in the detail-panel
-renderer.
+`platform` is an array on every entry (`["RHEL"]`, `["FortiGate"]`, or
+`["Cisco SD-WAN"]` today) and is a real facet in the Validations page's
+filter sidebar, not just a data-model formality — it's what lets one
+page and one card grid serve multiple validation catalogues without
+them being confused for each other. A future validation catalogue for
+another platform slots in the same way: its own schema, its own data
+file, a new entry in the page's `VALIDATIONS` array, and (if its raw
+telemetry fields don't match an existing platform's) a new telemetry
+field group in the detail-panel renderer's `VALIDATION_TELEMETRY_GROUPS`.
 
-Most field groups are shared verbatim across both catalogues today — the
-telemetry group is the one place they diverge, since a Linux auditd
-trail and a FortiGate CLI/log trail are genuinely different kinds of
+Most field groups are shared verbatim across all three catalogues today
+— the telemetry group is the one place they diverge, since a Linux
+auditd trail, a FortiGate CLI/log trail, and a Cisco SD-WAN Manager
+audit/device-identity trail are three genuinely different kinds of
 evidence:
 
 | Field group | Fields |
@@ -237,6 +324,7 @@ evidence:
 | Test execution | `safe_test`, `test_step`, `test_environment`, `rollback_step`, `evidence_expected`, `telemetry_coverage`, `test_result` |
 | Expected telemetry (RHEL) | `audit_key`, `audit_record_types[]`, `expected_syscall`, `expected_executable`, `expected_path`, `expected_auid`, `expected_uid`, `expected_euid`, `expected_command`, `expected_fields[]` |
 | Expected telemetry (FortiGate) | `fortigate_cli_context`, `expected_config_path`, `expected_log_type_subtype`, `expected_admin_user`, `expected_source_ip`, `expected_interface_ui`, `expected_command_change`, `expected_fields[]` |
+| Expected telemetry (Cisco SD-WAN) | `sdwan_manager_context`, `expected_object_config_path`, `expected_telemetry_type`, `expected_admin_user`, `expected_source_ip`, `expected_device_identity`, `expected_task_change_id`, `expected_command_change`, `expected_fields[]` |
 | Splunk mapping | `validation_spl`, `splunk_sourcetype[]`, `cim_data_model`, `cim_action` |
 | Detection & compliance | `detection_priority`, `detection_required`, `alert_required`, `compliance_relevant`, `cis_reference`, `stig_reference`, `ism_reference` |
 | Provenance | `notes`, `author`, `created`, `modified`, `version` |
@@ -263,13 +351,14 @@ panel adds sections this content type needs that a detection entry
 doesn't — Test Step (with a Copy button), Validation & Rollback, an
 Expected Telemetry section whose fields and title depend on which
 platform the entry belongs to (auditd for RHEL, CLI/log context for
-FortiGate), Splunk Mapping, and Detection & Compliance.
+FortiGate, Manager audit/device identity for Cisco SD-WAN), Splunk
+Mapping, and Detection & Compliance.
 
 ## Attribution and license
 
 These catalogues' structure and MITRE ATT&CK resolution are this
 project's own work; their source content (the privileged-action
-definitions, test steps, and telemetry mappings) comes from the two
+definitions, test steps, and telemetry mappings) comes from the three
 uploaded workbooks. `mitre_attack` fields are resolved against the
 official MITRE ATT&CK STIX corpus ([mitre/cti](https://github.com/mitre/cti),
 Apache-2.0-licensed on `mitre-attack`, CC-BY-4.0 on ATT&CK-name content).
