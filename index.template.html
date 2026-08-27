@@ -667,7 +667,7 @@
 <p class="validations-intro" id="validations-intro" hidden>A <strong>validation catalogue</strong> is not a detection catalogue: each
   entry below is a test-execution reference for confirming an existing detection actually fires,
   not a production rule of its own — the exact command to generate one privileged action (RHEL,
-  FortiGate, Cisco SD-WAN, or RHEL IdM/IPA — see the <span class="tag">Platform</span> filter), whether
+  FortiGate, Cisco SD-WAN, RHEL IdM/IPA, or Windows — see the <span class="tag">Platform</span> filter), whether
   it's safe to run in a lab (<span class="tag">SAFE Test</span>), a rollback step, expected platform
   telemetry, and a one-shot presence-check search. See
   <a href="https://github.com/adamliq/Threat-detection-library/blob/main/docs/validations.md" target="_blank" rel="noopener">docs/validations.md</a>
@@ -733,6 +733,7 @@
 <script type="application/json" id="fgt-priv-validations-data">__FGT_PRIV_VALIDATIONS_JSON__</script>
 <script type="application/json" id="csdwan-priv-validations-data">__CSDWAN_PRIV_VALIDATIONS_JSON__</script>
 <script type="application/json" id="ipa-priv-validations-data">__IPA_PRIV_VALIDATIONS_JSON__</script>
+<script type="application/json" id="win-priv-validations-data">__WIN_PRIV_VALIDATIONS_JSON__</script>
 <script>
 (function () {
   "use strict";
@@ -762,7 +763,8 @@
   var VALIDATIONS = JSON.parse(document.getElementById("rhel-priv-validations-data").textContent)
     .concat(JSON.parse(document.getElementById("fgt-priv-validations-data").textContent))
     .concat(JSON.parse(document.getElementById("csdwan-priv-validations-data").textContent))
-    .concat(JSON.parse(document.getElementById("ipa-priv-validations-data").textContent));
+    .concat(JSON.parse(document.getElementById("ipa-priv-validations-data").textContent))
+    .concat(JSON.parse(document.getElementById("win-priv-validations-data").textContent));
 
   // Normalize all fourteen catalogues into one array. Every original field is
   // kept (detail rendering branches on which fields are present - d.spl vs
@@ -1843,6 +1845,9 @@
       v.expected_device_identity, v.expected_task_change_id,
       v.ipa_area_context, v.ipa_command_family, v.expected_ldap_target, v.expected_admin_principal,
       v.expected_host_server,
+      v.primary_channel, v.primary_provider, v.expected_logon_type, v.expected_subject_account,
+      v.expected_target_account_object, v.expected_process_image, v.expected_object_path,
+      v.expected_command_line, (v.primary_windows_event_ids || []).join(" "),
       (v.platform || []).join(" "),
       (v.audit_record_types || []).join(" "),
       (v.expected_fields || []).join(" "),
@@ -1996,6 +2001,16 @@
         ["expected_admin_principal", "Expected Admin/Principal"], ["expected_source_ip", "Expected Source IP"],
         ["expected_host_server", "Expected Host/Server"], ["expected_command_change", "Expected Command/Change", true],
         ["expected_fields", "Expected Fields", "list"]
+      ]
+    },
+    {
+      anchor: "primary_windows_event_ids", title: "Expected Windows Telemetry",
+      fields: [
+        ["primary_windows_event_ids", "Windows Event ID(s)", "list"], ["primary_channel", "Channel", true],
+        ["primary_provider", "Provider", true], ["expected_logon_type", "Expected Logon Type"],
+        ["expected_subject_account", "Expected Subject Account"], ["expected_target_account_object", "Expected Target Account/Object"],
+        ["expected_process_image", "Expected Process/Image", true], ["expected_object_path", "Expected Object/Registry/Task/Service Path", true],
+        ["expected_command_line", "Expected Command Line", true], ["expected_fields", "Expected Fields", "list"]
       ]
     }
   ];
