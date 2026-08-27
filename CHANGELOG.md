@@ -16,6 +16,34 @@ The current version lives in [`VERSION`](VERSION) (the single source of
 truth — `tools/build.py` reads it and stamps it into the page header)
 and is echoed near the top of [`README.md`](README.md).
 
+## [1.2.0] - 2026-08-26
+
+### Added
+- Fifth validation catalogue: Windows Privileged Admin Action Validation
+  (`data/windows-privileged-admin-validations.json`, 146 entries,
+  `WIN-PRIV-001..146`), platform `Windows Endpoint` (matching the same
+  component value `data/windows-endpoint-detections.json` already uses
+  for this telemetry domain), sharing the Validations page with the
+  RHEL, FortiGate, Cisco SD-WAN, and RHEL IdM/IPA catalogues.
+- A fifth `VALIDATION_TELEMETRY_GROUPS` entry in the Validations
+  detail-panel renderer for this catalogue's Windows Event Log fields
+  (event ID/channel/provider, logon type, subject/target account,
+  process/image, object path, command line).
+
+### Notes
+- MITRE ATT&CK mapping resolved live against the current `mitre/cti`
+  STIX corpus, same discipline as the other four catalogues, with the
+  new wrinkle that some rows cite two technique IDs in one cell. The
+  conversion now extracts every technique ID present and resolves each
+  independently, deduping by the *current* resolved ID -- correctly
+  collapsing a cited old-ID/new-ID pair (`T1060 / T1547.001`, where
+  `T1060` itself just redirects to `T1547.001`) into one technique,
+  while keeping a cited pair that redirects to two different current
+  techniques (`T1070.001` -> `T1685.005` and `T1562.002` -> `T1685.001`)
+  as two. 126/146 entries (86%, the highest resolution rate of the five
+  catalogues) resolved at least one currently-valid technique; 5 entries
+  resolved two.
+
 ## [1.1.1] - 2026-08-26
 
 ### Added

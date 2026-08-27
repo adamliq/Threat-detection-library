@@ -1,6 +1,6 @@
 # Threat Detection Library
 
-![version](https://img.shields.io/badge/version-1.1.1-informational) [Changelog](CHANGELOG.md)
+![version](https://img.shields.io/badge/version-1.2.0-informational) [Changelog](CHANGELOG.md)
 
 A searchable, self-contained library of platform-specific threat detections —
 technique description, data sources, detection logic, MITRE ATT&CK mapping,
@@ -19,8 +19,9 @@ as JSON. A second top-level tab, **Heat Coverage**, shows the whole
 library as an ATT&CK technique × tactic matrix shaded by detection density
 — see [Heat Coverage tab](#heat-coverage-tab) below. A third top-level
 tab, **Validations**, holds this library's **validation catalogues**
-(RHEL, FortiGate, Cisco SD-WAN, and RHEL IdM/IPA) — test-execution
-references for confirming an existing detection actually fires, not
+(RHEL, FortiGate, Cisco SD-WAN, RHEL IdM/IPA, and Windows) —
+test-execution references for confirming an existing detection actually
+fires, not
 production detection rules of their own — see
 [Validations](#validations) below.
 
@@ -1011,7 +1012,7 @@ added shows the Windows tab's coverage jump from 261/474 to
 
 ## Validations
 
-Four catalogues back a third top-level page, **Validations**, alongside
+Five catalogues back a third top-level page, **Validations**, alongside
 Detections and Heat Coverage — this library's first entries in a new
 content type, a **validation catalogue**, each converted from an
 uploaded workbook of privileged-action test cases rather than
@@ -1021,29 +1022,31 @@ hand-authored:
 - `data/fortigate-privileged-admin-validations.json` (146 entries, platform `FortiGate`)
 - `data/cisco-sdwan-privileged-admin-validations.json` (145 entries, platform `Cisco SD-WAN`)
 - `data/rhel-ipa-privileged-admin-validations.json` (139 entries, platform `IdM/IPA/FreeIPA`)
+- `data/windows-privileged-admin-validations.json` (146 entries, platform `Windows Endpoint`)
 
 A validation catalogue entry isn't a detection rule. It's a
 test-execution reference: the exact command to trigger one privileged
 action once in a lab or on a controlled device (`test_step`), how to
 undo it (`rollback_step`), the platform telemetry expected to result,
 and a one-shot `validation_spl` presence check — confirming an
-*existing* detection (the Red Hat, Fortinet, and Cisco catalogues,
-respectively) actually fires, not a new production rule of its own. See
-[`docs/validations.md`](docs/validations.md) for the full rationale, the
-conversion methodology, and the discoveries made while resolving each
-workbook's MITRE ATT&CK mappings against the live STIX corpus rather
-than trusting them as given: all four workbooks' tactic columns still
-used the pre-split "Defense Evasion" name, and all four used technique
-IDs from the `T1562`/`T1562.001`/`T1562.004` family that turned out to
-be revoked and renumbered in the current MITRE release — the same
-technique family this library has now hit five times (Aria, then RHEL,
-then FortiGate, then Cisco SD-WAN, then RHEL IdM/IPA).
+*existing* detection actually fires, not a new production rule of its
+own. See [`docs/validations.md`](docs/validations.md) for the full
+rationale, the conversion methodology, and the discoveries made while
+resolving each workbook's MITRE ATT&CK mappings against the live STIX
+corpus rather than trusting them as given: all five workbooks' tactic
+columns still used the pre-split "Defense Evasion" name, and all five
+used technique IDs from the `T1562`/`T1060`/`T1070.001` family of
+revoked/renumbered IDs that turned out to be stale in the current MITRE
+release — the same broad "renumbered technique" problem this library
+has now hit five times across its history (Aria, RHEL, FortiGate, Cisco
+SD-WAN, RHEL IdM/IPA), with the Windows catalogue's conversion also
+having to handle rows that cite two technique IDs in one cell.
 
 The Validations page reuses the Detections page's design end to end
 (search, collapsible filter sidebar, card grid, shared detail overlay)
 but is a fully independent view — its own toolbar, its own state, no
 data sharing with the fourteen detection catalogues — so neither page's
-filtering or search state leaks into the other. All four validation
+filtering or search state leaks into the other. All five validation
 catalogues share this one page, one card grid, and a `Platform` filter
 facet to tell them apart, the same "many sources, one page" pattern the
 Detections page uses for its fourteen catalogues.
@@ -1071,6 +1074,7 @@ data/rhel-privileged-action-validations.json  Canonical data for the RHEL Privil
 data/fortigate-privileged-admin-validations.json  Canonical data for the FortiGate Privileged Admin Action Validation catalogue — a second validation catalogue sharing the Validations page with the RHEL one, disambiguated by the platform field.
 data/cisco-sdwan-privileged-admin-validations.json  Canonical data for the Cisco SD-WAN Privileged Admin Action Validation catalogue — a third validation catalogue sharing the Validations page, disambiguated by the platform field.
 data/rhel-ipa-privileged-admin-validations.json  Canonical data for the RHEL IdM/IPA Privileged Admin Action Validation catalogue — a fourth validation catalogue sharing the Validations page, disambiguated by the platform field.
+data/windows-privileged-admin-validations.json  Canonical data for the Windows Privileged Admin Action Validation catalogue — a fifth validation catalogue sharing the Validations page, disambiguated by the platform field.
 data/mitre-attack-esxi.json    MITRE ATT&CK ESXi techniques + official Detection Analytics, coverage computed across the ESXi/Splunk and Aria catalogues.
 data/mitre-attack-windows.json  MITRE ATT&CK Windows techniques + official Detection Analytics, coverage computed across the AD/RDP/DHCP catalogues, the ESCU catalogue's Windows Endpoint/Windows Network Telemetry entries, and the dedicated Windows Endpoint catalogue.
 data/mitre-attack-cisco.json    MITRE ATT&CK "Network Devices" platform techniques + official Detection Analytics, coverage computed across the ESCU catalogue's Cisco Network/ASA/IOS XE/SD-WAN entries and the dedicated Cisco Network Device catalogue.
@@ -1090,7 +1094,7 @@ docs/ad-detection-library.md  Coverage matrices, Priority Detection Packs, Attac
 docs/splunk-escu-detection-library.md  Curation methodology, coverage matrices, and attribution/license notes for the Splunk ESCU catalogue.
 docs/cisco-detection-library.md  MITRE-gap-fill methodology, coverage matrices, and named-threat cross-references for the Cisco Network Device catalogue.
 docs/windows-endpoint-detection-library.md  MITRE-gap-fill methodology, scoping rationale, and coverage matrices for the Windows Endpoint catalogue.
-docs/validations.md            Why a validation catalogue is a distinct content type, source/conversion methodology, and MITRE ATT&CK resolution notes for the RHEL, FortiGate, Cisco SD-WAN, and RHEL IdM/IPA validation catalogues.
+docs/validations.md            Why a validation catalogue is a distinct content type, source/conversion methodology, and MITRE ATT&CK resolution notes for the RHEL, FortiGate, Cisco SD-WAN, RHEL IdM/IPA, and Windows validation catalogues.
 schema/detection.schema.json   JSON Schema for data/detections.json entries.
 schema/aria-detection.schema.json  JSON Schema for data/aria-detections.json entries.
 schema/redhat-detection.schema.json  JSON Schema for data/redhat-detections.json entries.
@@ -1109,6 +1113,7 @@ schema/rhel-privileged-action-validation.schema.json  JSON Schema for data/rhel-
 schema/fortigate-privileged-admin-validation.schema.json  JSON Schema for data/fortigate-privileged-admin-validations.json entries.
 schema/cisco-sdwan-privileged-admin-validation.schema.json  JSON Schema for data/cisco-sdwan-privileged-admin-validations.json entries.
 schema/rhel-ipa-privileged-admin-validation.schema.json  JSON Schema for data/rhel-ipa-privileged-admin-validations.json entries.
+schema/windows-privileged-admin-validation.schema.json  JSON Schema for data/windows-privileged-admin-validations.json entries.
 index.template.html            Combined-library page shell (CSS/JS) with markers for all fourteen detection data files plus the validation data file.
 index.html                     Generated: template + all fourteen detection data files plus the validation data file. The primary, combined, filterable page — the only page in the repo, since the standalone Aria-only page was removed.
 tools/build.py                 Regenerates index.html from all fourteen detection data/*.json files plus data/rhel-privileged-action-validations.json.
@@ -1669,8 +1674,9 @@ instead.
 
 **Note on `data/rhel-privileged-action-validations.json`,
 `data/fortigate-privileged-admin-validations.json`,
-`data/cisco-sdwan-privileged-admin-validations.json`, and
-`data/rhel-ipa-privileged-admin-validations.json` specifically:**
+`data/cisco-sdwan-privileged-admin-validations.json`,
+`data/rhel-ipa-privileged-admin-validations.json`, and
+`data/windows-privileged-admin-validations.json` specifically:**
 none of these files is one of the fourteen detection catalogues above and
 none follows the same process — they're a different content type (a
 validation catalogue; see [Validations](#validations) and
@@ -1679,7 +1685,8 @@ Validations page rather than the Detections page, each validated against
 its own schema (`schema/rhel-privileged-action-validation.schema.json` /
 `schema/fortigate-privileged-admin-validation.schema.json` /
 `schema/cisco-sdwan-privileged-admin-validation.schema.json` /
-`schema/rhel-ipa-privileged-admin-validation.schema.json`) rather than
+`schema/rhel-ipa-privileged-admin-validation.schema.json` /
+`schema/windows-privileged-admin-validation.schema.json`) rather than
 `schema/detection.schema.json`, and none has a `COVERAGE_PLATFORMS`
 entry in the ATT&CK Coverage browser since none is a set of production
 detection rules to compute technique coverage over. Their IDs still

@@ -1,6 +1,6 @@
 # Validations
 
-Four catalogues back this library's **Validations** page — a top-level
+Five catalogues back this library's **Validations** page — a top-level
 view, alongside **Detections** and **Heat Coverage**, and this library's
 first entries in a new content type: a **validation catalogue**, not a
 detection catalogue.
@@ -9,8 +9,9 @@ detection catalogue.
 - `data/fortigate-privileged-admin-validations.json` (146 entries, `FortiGate`)
 - `data/cisco-sdwan-privileged-admin-validations.json` (145 entries, `Cisco SD-WAN`)
 - `data/rhel-ipa-privileged-admin-validations.json` (139 entries, `IdM/IPA/FreeIPA`)
+- `data/windows-privileged-admin-validations.json` (146 entries, `Windows Endpoint`)
 
-All four share one page, one card grid, one detail-panel design, and
+All five share one page, one card grid, one detail-panel design, and
 one `platform` filter facet to tell them apart — the same "many sources,
 one page" pattern the Detections page already uses for its fourteen
 catalogues.
@@ -32,11 +33,11 @@ Put simply: a detection catalogue entry watches continuously for an
 action happening. A validation entry is a recipe for causing that action
 to happen once, on purpose, in a controlled environment, so you can
 confirm the watching actually works — a test-execution reference for the
-existing catalogues (the Red Hat, Fortinet, and Cisco catalogues,
-respectively — the fourth catalogue below also references the Red Hat
-catalogue's IdM/IPA entries specifically), not a new production
-capability of its own. See the Validations page's own intro text for the
-same explanation in the UI.
+existing catalogues (the Red Hat, Fortinet, Cisco, and Windows Endpoint
+catalogues, respectively — the fourth catalogue below also references
+the Red Hat catalogue's IdM/IPA entries specifically), not a new
+production capability of its own. See the Validations page's own intro
+text for the same explanation in the UI.
 
 ## RHEL Privileged Action Validation Catalogue
 
@@ -391,24 +392,123 @@ routine, low-blast-radius operations that are easy to clean up
 afterward; only actions touching replication topology, trusts, or
 server-wide configuration carry real disruption risk.
 
+## Windows Privileged Admin Action Validation Catalogue
+
+### Source and conversion
+
+The source is a fifth uploaded workbook, "Windows Privileged Admin
+Actions (Enriched)" — the same three-sheet shape again, 146 rows,
+`WIN-PRIV-001` through `WIN-PRIV-146`, across 28 categories (User,
+Group, Active Directory, Privilege, Service, Scheduled Task, PowerShell,
+Registry, RDP, WinRM, WMI, Firewall, Defender, BitLocker, and more)
+covering generic Windows endpoint administration — not AD-domain-
+controller-specific (that's the existing Active Directory detection
+catalogue's territory) but the OS-level privileged surface: local
+accounts, services, scheduled tasks, PowerShell execution, the registry,
+Windows Defender, BitLocker, and Windows Firewall. In place of the other
+catalogues' columns, this workbook carries Windows Event Log-specific
+ones — Primary Windows Event ID(s), Primary Channel, Primary Provider,
+Expected Logon Type, Expected Subject Account, Expected Target
+Account/Object, Expected Process/Image, Expected Object/Registry/Task/
+Service Path, Expected Command Line — reflecting that Windows telemetry
+is a structured event ID + channel + provider + subject/target-account
+model, distinct from every other catalogue's evidence shape so far.
+
+Converted the same way: programmatically, one entry per row, into
+`data/windows-privileged-admin-validations.json` against
+`schema/windows-privileged-admin-validation.schema.json`. `platform` is
+`["Windows Endpoint"]` — the exact same string
+`data/windows-endpoint-detections.json`'s `component` enum already uses
+for this generic Windows OS endpoint telemetry domain.
+
+### MITRE ATT&CK mapping: dual-technique cells, resolved and deduped
+
+Same live-resolution discipline as the other four catalogues, and the
+same pre-split "Defense Evasion" tactic-name problem in the workbook's
+own tactic column. This workbook cites five different revoked/renumbered
+technique IDs across its rows (`T1060`, `T1070.001`, `T1562.001`,
+`T1562.002`, `T1562.004`) — more distinct revoked IDs than any prior
+catalogue, though for a reason: several rows cite **two** technique IDs
+in a single cell rather than one (e.g. `"T1060 / T1547.001 - Registry Run
+Keys / Startup Folder"`, `"T1070.001 - Clear Windows Event Logs /
+T1562.002"`). The conversion extracts every `Txxxx(.xxx)` token in the
+cell and resolves each independently through the same revoked-by chain,
+then dedupes by the *current* resolved ID:
+
+- `T1060 / T1547.001` — `T1060` itself is a revoked alias that redirects
+  to `T1547.001`, so both cited IDs land on the exact same current
+  technique. The two mentions **collapse to one** technique entry, with
+  the redirect preserved in its `note` field.
+- `T1070.001 - Clear Windows Event Logs / T1562.002` — `T1070.001`
+  redirects to `T1685.005` (Clear Windows Event Logs) while `T1562.002`
+  redirects to `T1685.001` (Disable or Modify Windows Event Log) — two
+  genuinely different current techniques (both log-tampering, but
+  distinct methods), so this row correctly keeps **two** technique
+  entries. 5 rows share this exact dual mapping.
+
+This is the same technique family's renumbering this library has now
+hit five times across its history (Aria, RHEL, FortiGate, Cisco SD-WAN,
+now Windows), but it's the first time a source workbook cited two IDs
+in one cell rather than one, which is why the conversion script here
+generalizes technique parsing to "extract every ID present" instead of
+"extract the first ID" the way the other four catalogues' scripts do.
+
+**Result:** 126 of 146 entries (86%) carry at least one resolved,
+currently-valid MITRE technique — the highest resolution rate of the
+five catalogues, since Windows endpoint administration maps unusually
+cleanly onto ATT&CK's Windows-heavy technique set; 5 of those 126 carry
+two techniques. 23 distinct techniques across 7 tactics. The remaining
+20 entries have no technique in the source workbook at all and none of
+them land a fallback tactic either (the workbook's own tactic column was
+blank or exclusively "Defense Evasion" for these rows).
+
+### Windows by the numbers
+
+| Category (top 10 of 28) | Count |
+|---|---:|
+| Active Directory | 24 |
+| User | 12 |
+| Service | 8 |
+| System | 8 |
+| Group | 6 |
+| Privilege | 6 |
+| Scheduled Task | 6 |
+| Registry | 6 |
+| PowerShell | 5 |
+| File | 5 |
+
+| Detection Priority | Count | | SAFE Test | Count |
+|---|---:|---|---|---:|
+| Critical | 63 | | Yes (lab-safe) | 84 |
+| High | 76 | | No | 62 |
+| Medium | 7 | | | |
+
+Priority again skews Critical/High (139 of 146), same rationale as the
+other four catalogues. `SAFE Test` skews toward lab-safe (84/146),
+similar to RHEL IdM/IPA — a large share of Windows endpoint actions
+(creating a local user, a scheduled task, a registry value) are routine
+and easy to clean up, while actions touching BitLocker, Defender,
+Windows Firewall, or security policy carry real disruption risk.
+
 ## What's in each entry
 
 `platform` is an array on every entry (`["RHEL"]`, `["FortiGate"]`,
-`["Cisco SD-WAN"]`, or `["IdM/IPA/FreeIPA"]` today) and is a real facet
-in the Validations page's filter sidebar, not just a data-model
-formality — it's what lets one page and one card grid serve multiple
-validation catalogues without them being confused for each other. A
-future validation catalogue for another platform slots in the same way:
-its own schema, its own data file, a new entry in the page's
-`VALIDATIONS` array, and (if its raw telemetry fields don't match an
-existing platform's) a new telemetry field group in the detail-panel
+`["Cisco SD-WAN"]`, `["IdM/IPA/FreeIPA"]`, or `["Windows Endpoint"]`
+today) and is a real facet in the Validations page's filter sidebar, not
+just a data-model formality — it's what lets one page and one card grid
+serve multiple validation catalogues without them being confused for
+each other. A future validation catalogue for another platform slots in
+the same way: its own schema, its own data file, a new entry in the
+page's `VALIDATIONS` array, and (if its raw telemetry fields don't match
+an existing platform's) a new telemetry field group in the detail-panel
 renderer's `VALIDATION_TELEMETRY_GROUPS`.
 
-Most field groups are shared verbatim across all four catalogues today
+Most field groups are shared verbatim across all five catalogues today
 — the telemetry group is the one place they diverge, since a Linux
 auditd trail, a FortiGate CLI/log trail, a Cisco SD-WAN Manager
-audit/device-identity trail, and an IPA LDAP-target/principal trail are
-four genuinely different kinds of evidence:
+audit/device-identity trail, an IPA LDAP-target/principal trail, and a
+Windows event-ID/channel/provider trail are five genuinely different
+kinds of evidence:
 
 | Field group | Fields |
 |---|---|
@@ -420,6 +520,7 @@ four genuinely different kinds of evidence:
 | Expected telemetry (FortiGate) | `fortigate_cli_context`, `expected_config_path`, `expected_log_type_subtype`, `expected_admin_user`, `expected_source_ip`, `expected_interface_ui`, `expected_command_change`, `expected_fields[]` |
 | Expected telemetry (Cisco SD-WAN) | `sdwan_manager_context`, `expected_object_config_path`, `expected_telemetry_type`, `expected_admin_user`, `expected_source_ip`, `expected_device_identity`, `expected_task_change_id`, `expected_command_change`, `expected_fields[]` |
 | Expected telemetry (RHEL IdM/IPA) | `ipa_area_context`, `ipa_command_family`, `expected_ldap_target`, `expected_telemetry_type`, `expected_admin_principal`, `expected_source_ip`, `expected_host_server`, `expected_command_change`, `expected_fields[]` |
+| Expected telemetry (Windows) | `primary_windows_event_ids[]`, `primary_channel`, `primary_provider`, `expected_logon_type`, `expected_subject_account`, `expected_target_account_object`, `expected_process_image`, `expected_object_path`, `expected_command_line`, `expected_fields[]` |
 | Splunk mapping | `validation_spl`, `splunk_sourcetype[]`, `cim_data_model`, `cim_action` |
 | Detection & compliance | `detection_priority`, `detection_required`, `alert_required`, `compliance_relevant`, `cis_reference`, `stig_reference`, `ism_reference` |
 | Provenance | `notes`, `author`, `created`, `modified`, `version` |
@@ -447,14 +548,14 @@ doesn't — Test Step (with a Copy button), Validation & Rollback, an
 Expected Telemetry section whose fields and title depend on which
 platform the entry belongs to (auditd for RHEL, CLI/log context for
 FortiGate, Manager audit/device identity for Cisco SD-WAN, LDAP
-target/principal for RHEL IdM/IPA), Splunk Mapping, and Detection &
-Compliance.
+target/principal for RHEL IdM/IPA, event ID/channel/provider for
+Windows), Splunk Mapping, and Detection & Compliance.
 
 ## Attribution and license
 
 These catalogues' structure and MITRE ATT&CK resolution are this
 project's own work; their source content (the privileged-action
-definitions, test steps, and telemetry mappings) comes from the four
+definitions, test steps, and telemetry mappings) comes from the five
 uploaded workbooks. `mitre_attack` fields are resolved against the
 official MITRE ATT&CK STIX corpus ([mitre/cti](https://github.com/mitre/cti),
 Apache-2.0-licensed on `mitre-attack`, CC-BY-4.0 on ATT&CK-name content).
