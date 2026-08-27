@@ -16,6 +16,15 @@ The current version lives in [`VERSION`](VERSION) (the single source of
 truth — `tools/build.py` reads it and stamps it into the page header)
 and is echoed near the top of [`README.md`](README.md).
 
+## [1.1.1] - 2026-08-26
+
+### Added
+- A **Companion Tools** dropdown menu in the page header, linking to
+  other tools from the same author — currently [Splunk Taxonomy — My
+  Tools](https://adamliq.github.io/Splunk_Taxonomy/#my-tools). Plain
+  dropdown (not the shared overlay modal), closes on outside click or
+  Escape.
+
 ## [1.1.0] - 2026-08-26
 
 ### Added
