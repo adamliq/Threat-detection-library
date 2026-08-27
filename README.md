@@ -1,12 +1,14 @@
 # Threat Detection Library
 
-![version](https://img.shields.io/badge/version-1.1.0-informational) [Changelog](CHANGELOG.md)
+![version](https://img.shields.io/badge/version-1.1.1-informational) [Changelog](CHANGELOG.md)
 
 A searchable, self-contained library of platform-specific threat detections —
 technique description, data sources, detection logic, MITRE ATT&CK mapping,
 known false positives, investigation steps, and references — in the same
 spirit as [Splunk-spl-library](https://github.com/adamliq/Splunk-spl-library),
-but for full detection rules rather than raw SPL snippets.
+but for full detection rules rather than raw SPL snippets. The page header's
+**Companion Tools** menu links out to other tools from the same author —
+currently [Splunk Taxonomy — My Tools](https://adamliq.github.io/Splunk_Taxonomy/#my-tools).
 
 Open `index.html` directly in a browser, or serve the repo statically (e.g.
 GitHub Pages) — there's no build step or server dependency to browse it.
